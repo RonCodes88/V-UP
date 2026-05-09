@@ -3,7 +3,7 @@ from pathlib import Path
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 load_dotenv(Path(__file__).parent.parent / ".env.local")
 load_dotenv(Path(__file__).parent / ".env", override=True)
@@ -12,9 +12,14 @@ app = FastAPI()
 
 
 @app.get("/api/signed-url")
-async def signed_url():
+async def signed_url(game: str = Query(default="maze")):
     api_key = os.getenv("ELEVENLABS_API_KEY")
-    agent_id = os.getenv("ELEVENLABS_AGENT_ID")
+
+    # Use game-specific agent ID if set, fall back to default
+    if game == "boss":
+        agent_id = os.getenv("ELEVENLABS_BOSS_AGENT_ID") or os.getenv("ELEVENLABS_AGENT_ID")
+    else:
+        agent_id = os.getenv("ELEVENLABS_AGENT_ID")
 
     if not api_key or not agent_id:
         raise HTTPException(
