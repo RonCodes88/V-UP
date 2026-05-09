@@ -45,6 +45,14 @@ export default function AgentBridge() {
   // The moment the last step is spent, hand the agent the EXACT next question
   // text and tell it to speak verbatim. Question selection is deterministic
   // (client-driven via questionIndex); the agent is just TTS here.
+  //
+  // Use sendUserMessage (not sendContextualUpdate): contextual updates are
+  // silent context that the agent only flushes on the next user-turn
+  // boundary, which is why the next question lagged for seconds. A user
+  // message forces an immediate agent turn. Verified in
+  // node_modules/@elevenlabs/client/dist/BaseConversation.js: only real STT
+  // transcripts reach onMessage as role="user", so this won't echo back
+  // into our judging path.
   useEffect(() => {
     const justSpentLast = prevCredits.current > 0 && stepCredits === 0;
     prevCredits.current = stepCredits;
@@ -53,7 +61,7 @@ export default function AgentBridge() {
     const p = useGameStore.getState().perception();
     if (p.atGoal) return; // celebrateWin will fire from the agent side
     const q = useGameStore.getState().currentQuestion();
-    conv.sendContextualUpdate(
+    conv.sendUserMessage(
       `Speak this verbatim, with no preamble or additions: "${q.text}"`,
     );
   }, [stepCredits, conv]);
