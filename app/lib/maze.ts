@@ -117,3 +117,56 @@ export function isOpen(maze: Maze, x: number, y: number, dir: Facing): boolean {
   if (x < 0 || y < 0 || x >= maze.width || y >= maze.height) return false;
   return !maze.cells[y][x].walls[dir];
 }
+
+function bfsDistances(maze: Maze, start: { x: number; y: number }): number[][] {
+  const dist = Array.from({ length: maze.height }, () =>
+    Array<number>(maze.width).fill(-1),
+  );
+  dist[start.y][start.x] = 0;
+  const queue: { x: number; y: number }[] = [{ ...start }];
+  while (queue.length) {
+    const { x, y } = queue.shift()!;
+    const cell = maze.cells[y][x];
+    const moves: { nx: number; ny: number; dir: Facing }[] = [
+      { nx: x, ny: y - 1, dir: "n" },
+      { nx: x, ny: y + 1, dir: "s" },
+      { nx: x + 1, ny: y, dir: "e" },
+      { nx: x - 1, ny: y, dir: "w" },
+    ];
+    for (const { nx, ny, dir } of moves) {
+      if (nx < 0 || ny < 0 || nx >= maze.width || ny >= maze.height) continue;
+      if (cell.walls[dir]) continue;
+      if (dist[ny][nx] !== -1) continue;
+      dist[ny][nx] = dist[y][x] + 1;
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  return dist;
+}
+
+/**
+ * Pick a goal cell whose shortest-path distance from `start` falls in [minDist, maxDist].
+ * Prefer the larger end of the band; fall back to the farthest reachable cell if none qualify.
+ */
+export function findGoalAtDistance(
+  maze: Maze,
+  start: { x: number; y: number },
+  minDist: number,
+  maxDist: number,
+): { x: number; y: number } {
+  const dist = bfsDistances(maze, start);
+  for (let d = maxDist; d >= minDist; d--) {
+    for (let y = 0; y < maze.height; y++) {
+      for (let x = 0; x < maze.width; x++) {
+        if (dist[y][x] === d) return { x, y };
+      }
+    }
+  }
+  let best = { x: start.x, y: start.y, d: 0 };
+  for (let y = 0; y < maze.height; y++) {
+    for (let x = 0; x < maze.width; x++) {
+      if (dist[y][x] > best.d) best = { x, y, d: dist[y][x] };
+    }
+  }
+  return { x: best.x, y: best.y };
+}

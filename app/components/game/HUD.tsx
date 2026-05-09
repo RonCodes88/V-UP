@@ -2,7 +2,7 @@
 
 import { useConversation } from "@elevenlabs/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGameStore } from "@/app/lib/gameStore";
 import { useHubStore } from "@/app/lib/hubStore";
 import { buildFirstMessage, buildSystemPrompt, getPersona } from "@/app/lib/agentPersona";
@@ -16,10 +16,10 @@ export default function HUD() {
   const goal = useGameStore((s) => s.maze.goal);
   const lastAgentMessage = useGameStore((s) => s.lastAgentMessage);
   const bubbleVariant = useGameStore((s) => s.bubbleVariant);
+  const bubbleVisible = useGameStore((s) => s.bubbleVisible);
   const stepCredits = useGameStore((s) => s.stepCredits);
   const perception = useGameStore((s) => s.perception);
   const playerMove = useGameStore((s) => s.playerMove);
-  const grantStep = useGameStore((s) => s.grantStep);
 
   const router = useRouter();
   const conv = useConversation();
@@ -35,12 +35,41 @@ export default function HUD() {
 
   const [starting, setStarting] = useState(false);
 
+  // Auto-mute on first connect — user must explicitly click "Start Listening"
+  // before each answer. Keeps background noise from the demo room out.
+  const wasConnected = useRef(false);
+  useEffect(() => {
+    if (connected && !wasConnected.current) {
+      wasConnected.current = true;
+      conv.setMuted(true);
+    } else if (!connected) {
+      wasConnected.current = false;
+    }
+  }, [connected, conv]);
+
+  // Auto-mute the moment a step is granted (correct answer) so the walking
+  // animation isn't picked up as an answer to a not-yet-asked question.
+  const prevCredits = useRef(stepCredits);
+  useEffect(() => {
+    if (prevCredits.current === 0 && stepCredits > 0 && connected) {
+      conv.setMuted(true);
+    }
+    prevCredits.current = stepCredits;
+  }, [stepCredits, connected, conv]);
+
+  // Defensive: also mute during the walk animation.
+  useEffect(() => {
+    if (status === "moving" && connected && !muted) {
+      conv.setMuted(true);
+    }
+  }, [status, connected, muted, conv]);
+
   const start = async () => {
     if (starting) return;
     setStarting(true);
     try {
       setError(null);
-      reset({ seed: Math.floor(Math.random() * 1e9) });
+      reset();
       const res = await fetch("/api/signed-url");
       if (!res.ok) throw new Error(`Signed URL fetch failed: ${res.status}`);
       const { signedUrl, error: apiErr } = await res.json();
@@ -76,9 +105,9 @@ export default function HUD() {
 
   const canMove = stepCredits > 0 && status !== "moving" && status !== "won";
 
-  // Hide center card when player has a step to take or is mid-walk so the
-  // maze and character are unobstructed.
-  const showCard = !canMove && status !== "moving";
+  // Center card only shows when the agent has fresh narration to deliver —
+  // hidden during the answer→walk→next-question pause so the player can think.
+  const showCard = bubbleVisible && !canMove && status !== "moving";
 
   const statusLabel =
     status === "won"
@@ -148,19 +177,6 @@ export default function HUD() {
               )}
               {statusLabel}
             </Pill>
-            {connected && (
-              <button
-                onClick={() => conv.setMuted(!muted)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md ring-1 transition ${
-                  muted
-                    ? "bg-rose-500/30 text-rose-100 ring-rose-400/50 hover:bg-rose-500/40"
-                    : "bg-white/10 text-white ring-white/20 hover:bg-white/20"
-                }`}
-                title={muted ? "Click to listen again" : "Pause listening (loud room)"}
-              >
-                {muted ? "🔇 Mic off" : "🎤 Mic on"}
-              </button>
-            )}
           </div>
         </header>
 
@@ -186,29 +202,17 @@ export default function HUD() {
                   💛 Take your time — I&apos;m right here with you.
                 </div>
               )}
-              {canMove && (
-                <div className="mt-3 text-sm text-emerald-200">
-                  ✨ You earned a step! Use the arrows or WASD keys to walk.
-                </div>
-              )}
               {connected && (
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <div className="mt-5 flex justify-center">
                   <button
                     onClick={() => conv.setMuted(!muted)}
-                    className={`rounded-full px-4 py-2 text-sm font-bold shadow-lg ring-2 transition ${
+                    className={`rounded-full px-7 py-3 text-base font-bold shadow-xl ring-2 transition ${
                       muted
-                        ? "bg-emerald-400 text-emerald-950 ring-emerald-200 hover:bg-emerald-300"
+                        ? "bg-emerald-400 text-emerald-950 ring-emerald-200 hover:scale-105 hover:bg-emerald-300 listening-glow"
                         : "bg-rose-500 text-rose-50 ring-rose-300 hover:bg-rose-400"
                     }`}
                   >
-                    {muted ? "🎤 Start Mic" : "🔇 Stop Mic"}
-                  </button>
-                  <button
-                    onClick={() => grantStep()}
-                    className="rounded-full bg-indigo-400 px-4 py-2 text-sm font-bold text-indigo-950 shadow-lg ring-2 ring-indigo-200 transition hover:bg-indigo-300"
-                    title="Force a step if the bear didn't react"
-                  >
-                    ⚡ Grant Step
+                    {muted ? "🎤 Start Listening" : "🔇 Stop Listening"}
                   </button>
                 </div>
               )}
@@ -260,10 +264,10 @@ export default function HUD() {
                   End
                 </button>
                 <button
-                  onClick={() => reset({ seed: Math.floor(Math.random() * 1e9) })}
+                  onClick={() => reset()}
                   className="rounded-full bg-white/10 px-5 py-2 text-sm font-semibold text-white shadow-xl ring-1 ring-white/20 transition hover:bg-white/20"
                 >
-                  New Maze
+                  Restart
                 </button>
               </div>
             </div>
@@ -299,10 +303,10 @@ export default function HUD() {
               Your buddy made it home — wonderful work, friend.
             </div>
             <button
-              onClick={() => reset({ seed: Math.floor(Math.random() * 1e9) })}
+              onClick={() => reset()}
               className="mt-5 rounded-full bg-emerald-400 px-6 py-2.5 text-sm font-bold text-emerald-950 shadow-xl transition hover:bg-emerald-300"
             >
-              Play another maze
+              Play again
             </button>
           </div>
         </div>
