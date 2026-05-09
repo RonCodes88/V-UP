@@ -29,15 +29,12 @@ export default function AgentBridge() {
     return `${perceptionString(p)}; step_credits: ${credits}`;
   });
 
-  // Renamed semantically: agent grants the player a step, the player picks
-  // the direction. Keeps the same tool name so existing dashboard config works
-  // unchanged. Direction param is ignored (kept for backwards compat).
   useConversationClientTool("moveCharacter", () => {
     const credits = useGameStore.getState().grantStep();
     if (credits === 0) {
-      return "step_already_pending; wait for the player to take their step before granting another";
+      return "step_already_pending";
     }
-    return `step_granted; the player has ${credits} step(s) to walk. Stay silent until you receive a system message telling you to ask the next question.`;
+    return `step_granted; ${credits} step(s) banked. Say "Pick a direction!" then stay silent until the SYSTEM gives you the next question text.`;
   });
 
   useConversationClientTool("celebrateWin", () => {
@@ -45,9 +42,17 @@ export default function AgentBridge() {
     return "celebrated";
   });
 
-  // Fire the next-question nudge the moment credits hit zero — i.e. the
-  // player just spent their last step. The LLM generates the next question
-  // in parallel with the walk animation, eliminating the post-walk pause.
+  // The moment the last step is spent, hand the agent the EXACT next question
+  // text and tell it to speak verbatim. Question selection is deterministic
+  // (client-driven via questionIndex); the agent is just TTS here.
+  //
+  // Use sendUserMessage (not sendContextualUpdate): contextual updates are
+  // silent context that the agent only flushes on the next user-turn
+  // boundary, which is why the next question lagged for seconds. A user
+  // message forces an immediate agent turn. Verified in
+  // node_modules/@elevenlabs/client/dist/BaseConversation.js: only real STT
+  // transcripts reach onMessage as role="user", so this won't echo back
+  // into our judging path.
   useEffect(() => {
     const justSpentLast = prevCredits.current > 0 && stepCredits === 0;
     prevCredits.current = stepCredits;
@@ -55,8 +60,9 @@ export default function AgentBridge() {
     if (conv.status !== "connected") return;
     const p = useGameStore.getState().perception();
     if (p.atGoal) return; // celebrateWin will fire from the agent side
-    conv.sendContextualUpdate(
-      "The player just finished walking their steps. Ask the next science question now in one short sentence. Do not praise — just ask the question.",
+    const q = useGameStore.getState().currentQuestion();
+    conv.sendUserMessage(
+      `Speak this verbatim, with no preamble or additions: "${q.text}"`,
     );
   }, [stepCredits, conv]);
 

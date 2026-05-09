@@ -9,6 +9,7 @@ import {
   resolveDirection,
   step,
 } from "./maze";
+import { QUESTIONS, type Question } from "./questions";
 
 export type Status = "idle" | "playing" | "moving" | "won";
 
@@ -67,8 +68,12 @@ type State = {
   // step credits — earned by answering correctly, spent by player to move
   stepCredits: number;
 
+  // current question — client-driven, deterministic order
+  questionIndex: number;
+
   // actions
   perception: () => Perception;
+  currentQuestion: () => Question;
   /** Agent grants the player a step token. Returns the new credit count. */
   grantStep: () => number;
   /** Player spends one step credit to move 1 cell. Returns blocked/no-credit/moved/goal. */
@@ -134,6 +139,9 @@ export const useGameStore = create<State>((set, get) => ({
   awaitingAnswer: false,
   pendingEvaluation: false,
   stepCredits: 0,
+  questionIndex: 0,
+
+  currentQuestion: () => QUESTIONS[get().questionIndex],
 
   perception: () => {
     const { maze, pos, facing } = get();
@@ -153,7 +161,7 @@ export const useGameStore = create<State>((set, get) => ({
   },
 
   grantStep: () => {
-    const { status, awaitingAnswer, stepCredits } = get();
+    const { status, awaitingAnswer, stepCredits, questionIndex } = get();
     if (status === "won") return stepCredits;
     if (awaitingAnswer) return stepCredits; // already granted; wait for player
     const next = Math.min(MAX_BANKED_STEPS, stepCredits + STEPS_PER_ANSWER);
@@ -161,27 +169,42 @@ export const useGameStore = create<State>((set, get) => ({
       stepCredits: next,
       awaitingAnswer: true,
       bubbleVisible: false,
+      questionIndex: Math.min(QUESTIONS.length - 1, questionIndex + 1),
     });
     return next;
   },
 
   playerMove: (dir) => {
-    const { maze, pos, facing, status, stepCredits } = get();
+    const { maze, pos, facing, status, stepCredits, questionIndex } = get();
     if (status === "won" || status === "moving") return "blocked";
     if (stepCredits <= 0) return "no_credit";
     const newFacing = resolveDirection(facing, dir);
     if (!isOpen(maze, pos.x, pos.y, newFacing)) return "blocked";
     const next = step(pos, newFacing);
     const reachedGoal = next.x === maze.goal.x && next.y === maze.goal.y;
+    const nextCredits = stepCredits - 1;
+    // When the last step is spent (and we didn't reach the goal), preload the
+    // next question on-screen so the player sees it instantly instead of
+    // waiting for the agent's TTS round-trip.
+    const isLastStep = nextCredits === 0 && !reachedGoal;
+    const nextQuestion = QUESTIONS[Math.min(QUESTIONS.length - 1, questionIndex)];
     set({
       pos: next,
       facing: newFacing,
       status: reachedGoal ? "won" : "moving",
-      stepCredits: stepCredits - 1,
-      bubbleVariant: reachedGoal ? "victory" : "celebration",
-      lastAgentMessage: reachedGoal ? "🏆 You did it! Hooray!" : "Nice step!",
+      stepCredits: nextCredits,
+      bubbleVariant: reachedGoal
+        ? "victory"
+        : isLastStep
+          ? "intro"
+          : "celebration",
+      lastAgentMessage: reachedGoal
+        ? "🏆 You did it! Hooray!"
+        : isLastStep
+          ? `Here is the next question! ${nextQuestion.text}`
+          : "Nice step!",
       bubbleKey: get().bubbleKey + 1,
-      bubbleVisible: reachedGoal, // hide bubble while walking; let agent re-open it with next question
+      bubbleVisible: reachedGoal || isLastStep,
     });
     return reachedGoal ? "goal_reached" : "moved";
   },
@@ -219,6 +242,7 @@ export const useGameStore = create<State>((set, get) => ({
       awaitingAnswer: false,
       pendingEvaluation: false,
       stepCredits: 0,
+      questionIndex: 0,
     });
   },
 
@@ -259,6 +283,10 @@ export const useGameStore = create<State>((set, get) => ({
           stepCredits: Math.min(MAX_BANKED_STEPS, s.stepCredits + STEPS_PER_ANSWER),
           awaitingAnswer: true,
           pendingEvaluation: false,
+          // Advance to the next question. Without this, when the keyword
+          // matcher grants the step before moveCharacter fires, grantStep
+          // short-circuits on awaitingAnswer and the same question repeats.
+          questionIndex: Math.min(QUESTIONS.length - 1, s.questionIndex + 1),
           bubbleVariant: "celebration",
           bubbleVisible: false, // grant is silent; D-pad lights up, no overlay
         };
