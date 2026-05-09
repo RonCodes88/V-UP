@@ -12,22 +12,6 @@ app = FastAPI()
 
 
 async def _mint_signed_url(api_key: str, agent_id: str) -> str:
-@app.get("/api/signed-url")
-async def signed_url(game: str = Query(default="maze")):
-    api_key = os.getenv("ELEVENLABS_API_KEY")
-
-    # Use game-specific agent ID if set, fall back to default
-    if game == "boss":
-        agent_id = os.getenv("ELEVENLABS_BOSS_AGENT_ID") or os.getenv("ELEVENLABS_AGENT_ID")
-    else:
-        agent_id = os.getenv("ELEVENLABS_AGENT_ID")
-
-    if not api_key or not agent_id:
-        raise HTTPException(
-            status_code=500,
-            detail="Missing ELEVENLABS_API_KEY or ELEVENLABS_AGENT_ID",
-        )
-
     async with httpx.AsyncClient() as client:
         res = await client.get(
             "https://api.elevenlabs.io/v1/convai/conversation/get-signed-url",
@@ -41,6 +25,21 @@ async def signed_url(game: str = Query(default="maze")):
         )
     return res.json()["signed_url"]
 
+
+@app.get("/api/signed-url")
+async def signed_url(game: str = Query(default="maze")):
+    api_key = os.getenv("ELEVENLABS_API_KEY")
+
+    if game == "boss":
+        agent_id = os.getenv("ELEVENLABS_BOSS_AGENT_ID") or os.getenv("ELEVENLABS_AGENT_ID")
+    else:
+        agent_id = os.getenv("ELEVENLABS_AGENT_ID")
+
+    if not api_key or not agent_id:
+        raise HTTPException(status_code=500, detail="Missing ELEVENLABS_API_KEY or ELEVENLABS_AGENT_ID")
+    return {"signedUrl": await _mint_signed_url(api_key, agent_id)}
+
+
 @app.get("/api/signed-url/spell")
 async def signed_url_spell():
     api_key = os.getenv("ELEVENLABS_API_KEY")
@@ -48,4 +47,3 @@ async def signed_url_spell():
     if not api_key or not agent_id:
         raise HTTPException(status_code=500, detail="Missing ELEVENLABS_API_KEY or ELEVNLABS_AGENT_SPELL_ID")
     return {"signedUrl": await _mint_signed_url(api_key, agent_id)}
-    return {"signedUrl": res.json()["signed_url"]}
