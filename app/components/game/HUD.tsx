@@ -1,8 +1,11 @@
 "use client";
 
 import { useConversation } from "@elevenlabs/react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useGameStore } from "@/app/lib/gameStore";
+import { useHubStore } from "@/app/lib/hubStore";
+import { buildFirstMessage, buildSystemPrompt, getPersona } from "@/app/lib/agentPersona";
 import type { Direction } from "@/app/lib/maze";
 
 export default function HUD() {
@@ -16,28 +19,48 @@ export default function HUD() {
   const stepCredits = useGameStore((s) => s.stepCredits);
   const perception = useGameStore((s) => s.perception);
   const playerMove = useGameStore((s) => s.playerMove);
+  const grantStep = useGameStore((s) => s.grantStep);
 
+  const router = useRouter();
   const conv = useConversation();
   const connected = conv.status === "connected";
   const isSpeaking = conv.isSpeaking;
   const muted = conv.isMuted;
 
+  const characterSlug = useHubStore((s) => s.selectedCharacter);
+  const persona = getPersona(characterSlug);
+
   const setError = useGameStore((s) => s.setError);
   const setStatus = useGameStore((s) => s.setStatus);
 
+  const [starting, setStarting] = useState(false);
+
   const start = async () => {
+    if (starting) return;
+    setStarting(true);
     try {
       setError(null);
       reset({ seed: Math.floor(Math.random() * 1e9) });
-      await navigator.mediaDevices.getUserMedia({ audio: true });
       const res = await fetch("/api/signed-url");
       if (!res.ok) throw new Error(`Signed URL fetch failed: ${res.status}`);
       const { signedUrl, error: apiErr } = await res.json();
       if (apiErr) throw new Error(apiErr);
-      conv.startSession({ signedUrl });
+      const slug = useHubStore.getState().selectedCharacter;
       setStatus("playing");
+      conv.startSession({
+        signedUrl,
+        overrides: {
+          agent: {
+            prompt: { prompt: buildSystemPrompt(slug) },
+            firstMessage: buildFirstMessage(slug),
+          },
+        },
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start");
+      setStatus("idle");
+    } finally {
+      setStarting(false);
     }
   };
 
@@ -51,25 +74,28 @@ export default function HUD() {
   // Live perception, used to disable D-pad arrows that face walls.
   const p = perception();
 
-  // Fade the center card while the bear is walking so the action is visible.
-  const cardOpacity = status === "moving" ? 0.25 : 1;
-
   const canMove = stepCredits > 0 && status !== "moving" && status !== "won";
+
+  // Hide center card when player has a step to take or is mid-walk so the
+  // maze and character are unobstructed.
+  const showCard = !canMove && status !== "moving";
 
   const statusLabel =
     status === "won"
       ? "We did it!"
-      : !connected
+      : status === "idle"
         ? "Tap start"
-        : status === "moving"
-          ? "Walking…"
-          : muted
-            ? "Mic off"
-            : isSpeaking
-              ? "Bear talking"
-              : canMove
-                ? "Pick a direction!"
-                : "Listening";
+        : !connected
+          ? "Connecting…"
+          : status === "moving"
+            ? "Walking…"
+            : muted
+              ? "Mic off"
+              : isSpeaking
+                ? `${persona.name.split(" ")[0]} talking`
+                : canMove
+                  ? "Pick a direction!"
+                  : "Listening";
 
   const variantTone: Record<typeof bubbleVariant, string> = {
     intro: "from-indigo-500/30 to-violet-500/30 border-indigo-300/40",
@@ -83,12 +109,24 @@ export default function HUD() {
     <>
       <div className="pointer-events-none absolute inset-0 flex flex-col">
         <header className="pointer-events-auto flex items-start justify-between gap-3 p-5">
-          <div>
-            <div className="text-lg font-bold tracking-tight text-white drop-shadow-lg">
-              🐻 Maze Quest
-            </div>
-            <div className="text-xs text-white/70">
-              Answer right → earn a step → pick a direction
+          <div className="flex items-start gap-3">
+            <button
+              onClick={() => {
+                if (connected) conv.endSession();
+                router.push("/");
+              }}
+              className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white shadow-lg ring-1 ring-white/20 backdrop-blur-md transition hover:bg-white/20"
+              title="Back to hub"
+            >
+              ← Hub
+            </button>
+            <div>
+              <div className="text-lg font-bold tracking-tight text-white drop-shadow-lg">
+                {persona.emoji} Maze Quest
+              </div>
+              <div className="text-xs text-white/70">
+                Science question → earn a step → pick a direction
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -129,17 +167,16 @@ export default function HUD() {
         <div className="flex-1" />
 
         {/* Center modal-style card */}
-        {connected && status !== "won" && (
+        {status !== "idle" && status !== "won" && showCard && (
           <div
             className="pointer-events-none absolute left-1/2 top-1/2 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 px-6 transition-opacity duration-300"
-            style={{ opacity: cardOpacity }}
           >
             <div
               key={lastAgentMessage}
               className={`center-card pointer-events-auto rounded-3xl border-2 bg-gradient-to-br p-6 shadow-2xl backdrop-blur-md ${variantTone[bubbleVariant]}`}
             >
               <div className="text-xs font-semibold uppercase tracking-widest text-white/70">
-                Professor Bear
+                {persona.name}
               </div>
               <div className="mt-1 text-2xl font-semibold leading-snug text-white drop-shadow">
                 {lastAgentMessage}
@@ -154,27 +191,49 @@ export default function HUD() {
                   ✨ You earned a step! Use the arrows or WASD keys to walk.
                 </div>
               )}
+              {connected && (
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    onClick={() => conv.setMuted(!muted)}
+                    className={`rounded-full px-4 py-2 text-sm font-bold shadow-lg ring-2 transition ${
+                      muted
+                        ? "bg-emerald-400 text-emerald-950 ring-emerald-200 hover:bg-emerald-300"
+                        : "bg-rose-500 text-rose-50 ring-rose-300 hover:bg-rose-400"
+                    }`}
+                  >
+                    {muted ? "🎤 Start Mic" : "🔇 Stop Mic"}
+                  </button>
+                  <button
+                    onClick={() => grantStep()}
+                    className="rounded-full bg-indigo-400 px-4 py-2 text-sm font-bold text-indigo-950 shadow-lg ring-2 ring-indigo-200 transition hover:bg-indigo-300"
+                    title="Force a step if the bear didn't react"
+                  >
+                    ⚡ Grant Step
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Idle/start splash */}
-        {!connected && status !== "won" && (
+        {status === "idle" && (
           <div className="pointer-events-auto absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-6 text-center">
             <div className="center-card rounded-3xl border-2 border-white/20 bg-gradient-to-br from-indigo-600/40 to-purple-700/40 p-7 shadow-2xl backdrop-blur-md">
-              <div className="text-4xl">🐻🌟</div>
+              <div className="text-4xl">{persona.emoji}🌟</div>
               <div className="mt-2 text-2xl font-bold text-white">
                 Welcome, friend!
               </div>
               <div className="mt-2 text-sm text-white/85">
-                Answer a question → earn a step → pick an arrow to walk the
-                bear toward the glowing portal.
+                Answer a science question → earn a step → pick an arrow to walk
+                your buddy toward the glowing portal.
               </div>
               <button
                 onClick={start}
-                className="mt-5 rounded-full bg-emerald-400 px-7 py-3 text-base font-bold text-emerald-950 shadow-2xl shadow-emerald-500/40 transition hover:scale-105 hover:bg-emerald-300"
+                disabled={starting}
+                className="mt-5 rounded-full bg-emerald-400 px-7 py-3 text-base font-bold text-emerald-950 shadow-2xl shadow-emerald-500/40 transition hover:scale-105 hover:bg-emerald-300 disabled:opacity-60 disabled:hover:scale-100"
               >
-                ▶ Start Adventure
+                {starting ? "Connecting…" : "▶ Start Adventure"}
               </button>
               {error && (
                 <div className="mt-3 rounded-xl border border-rose-400/40 bg-rose-500/10 p-2 text-xs text-rose-200">
@@ -186,7 +245,7 @@ export default function HUD() {
         )}
 
         {/* Bottom row — D-pad on right, controls in middle, text input on left */}
-        {connected && status !== "won" && (
+        {status !== "idle" && status !== "won" && (
           <div className="pointer-events-auto absolute bottom-0 left-0 right-0 flex items-end justify-between gap-4 p-5">
             <div className="flex flex-col gap-2">
               <TypeAnswer
@@ -222,7 +281,7 @@ export default function HUD() {
           </div>
         )}
 
-        {error && connected && status !== "won" && (
+        {error && status !== "idle" && status !== "won" && (
           <div className="pointer-events-auto absolute left-1/2 top-20 max-w-md -translate-x-1/2 rounded-xl border border-rose-400/40 bg-rose-500/10 p-2 text-center text-xs text-rose-200">
             {error}
           </div>
@@ -237,7 +296,7 @@ export default function HUD() {
               You did it!
             </div>
             <div className="mt-2 text-base text-white/90">
-              The bear made it home — wonderful work, friend.
+              Your buddy made it home — wonderful work, friend.
             </div>
             <button
               onClick={() => reset({ seed: Math.floor(Math.random() * 1e9) })}

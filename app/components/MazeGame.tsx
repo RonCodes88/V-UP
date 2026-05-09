@@ -8,7 +8,7 @@ import { Suspense } from "react";
 import { useGameStore } from "@/app/lib/gameStore";
 import AgentBridge from "./game/AgentBridge";
 import CameraRig from "./game/CameraRig";
-import Character from "./game/Character";
+import Character3D from "./shared/Character3D";
 import Goal from "./game/Goal";
 import HUD from "./game/HUD";
 import KeyboardDevControls from "./game/KeyboardDevControls";
@@ -17,15 +17,24 @@ import Maze from "./game/Maze";
 export default function MazeGame() {
   const appendTranscript = useGameStore((s) => s.appendTranscript);
   const setError = useGameStore((s) => s.setError);
+  const setStatus = useGameStore((s) => s.setStatus);
   const setAgentMessage = useGameStore((s) => s.setAgentMessage);
   const onUserSpoke = useGameStore((s) => s.onUserSpoke);
 
   return (
     <ConversationProvider
       onConnect={() => setError(null)}
-      onError={(e) =>
-        setError(typeof e === "string" ? e : "Connection error")
-      }
+      onError={(e) => {
+        setError(typeof e === "string" ? e : "Connection error");
+        setStatus("idle");
+      }}
+      onDisconnect={(details) => {
+        const reason = details?.reason;
+        if (reason === "error") {
+          setError(details?.message ?? "Connection lost");
+        }
+        if (reason !== "user") setStatus("idle");
+      }}
       onMessage={({ message, source }) => {
         const role = source === "user" ? "user" : "ai";
         appendTranscript({ role, text: message, ts: Date.now() });
@@ -63,7 +72,7 @@ export default function MazeGame() {
           <Suspense fallback={null}>
             <Environment preset="night" />
             <Maze />
-            <Character />
+            <Character3D />
             <Goal />
             <Sparkles
               count={120}

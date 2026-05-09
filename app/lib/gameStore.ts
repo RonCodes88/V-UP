@@ -59,6 +59,9 @@ type State = {
   // move lock — true after step is granted; cleared when user speaks
   awaitingAnswer: boolean;
 
+  // user just spoke/typed — next agent reply gets keyword-evaluated for grant
+  pendingEvaluation: boolean;
+
   // step credits — earned by answering correctly, spent by player to move
   stepCredits: number;
 
@@ -113,6 +116,7 @@ export const useGameStore = create<State>((set, get) => ({
   bubbleVariant: "intro",
   bubbleKey: 0,
   awaitingAnswer: false,
+  pendingEvaluation: false,
   stepCredits: 0,
 
   perception: () => {
@@ -197,6 +201,7 @@ export const useGameStore = create<State>((set, get) => ({
       bubbleVariant: "intro",
       bubbleKey: get().bubbleKey + 1,
       awaitingAnswer: false,
+      pendingEvaluation: false,
       stepCredits: 0,
     });
   },
@@ -205,20 +210,77 @@ export const useGameStore = create<State>((set, get) => ({
     set((s) => ({ transcript: [...s.transcript, m] })),
   setError: (e) => set({ error: e }),
   setStatus: (s) => set({ status: s }),
-  setAgentMessage: (text, variant) =>
-    set((s) => ({
-      lastAgentMessage: text,
-      bubbleVariant: variant ?? inferVariant(text, s),
-      bubbleKey: s.bubbleKey + 1,
-    })),
+  setAgentMessage: (text, variant) => {
+    const clean = text.replace(/<call:[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    const lower = clean.toLowerCase();
+    const positive = POSITIVE_PATTERNS.some((re) => re.test(lower));
+    const negative = NEGATIVE_PATTERNS.some((re) => re.test(lower));
+    set((s) => {
+      const base = {
+        lastAgentMessage: clean,
+        bubbleVariant: variant ?? inferVariant(clean, s),
+        bubbleKey: s.bubbleKey + 1,
+      };
+      const shouldGrant =
+        s.pendingEvaluation &&
+        positive &&
+        !negative &&
+        !s.awaitingAnswer &&
+        s.stepCredits === 0 &&
+        s.status !== "won";
+      if (shouldGrant) {
+        return {
+          ...base,
+          stepCredits: 1,
+          awaitingAnswer: true,
+          pendingEvaluation: false,
+          bubbleVariant: "celebration",
+        };
+      }
+      if (s.pendingEvaluation && negative) {
+        return { ...base, pendingEvaluation: false };
+      }
+      return base;
+    });
+  },
   setBubble: (variant, text) =>
     set((s) => ({
       bubbleVariant: variant,
       lastAgentMessage: text ?? s.lastAgentMessage,
       bubbleKey: s.bubbleKey + 1,
     })),
-  onUserSpoke: () => set({ awaitingAnswer: false }),
+  onUserSpoke: () => set({ awaitingAnswer: false, pendingEvaluation: true }),
 }));
+
+const POSITIVE_PATTERNS = [
+  /\bthat'?s right\b/,
+  /\bcorrect\b/,
+  /\byes\b/,
+  /\bwell done\b/,
+  /\bgreat (job|work)\b/,
+  /\bgood (job|work)\b/,
+  /\bnice (job|work|one)\b/,
+  /\bwonderful\b/,
+  /\bperfect\b/,
+  /\bexcellent\b/,
+  /\bamazing\b/,
+  /\bawesome\b/,
+  /\byou (got it|did it)\b/,
+  /\bbravo\b/,
+  /\bexactly\b/,
+];
+
+const NEGATIVE_PATTERNS = [
+  /\bnot quite\b/,
+  /\balmost\b/,
+  /\btry again\b/,
+  /\blet'?s try\b/,
+  /\bclose\b/,
+  /\boops\b/,
+  /\bthat'?s okay\b/,
+  /\bnot exactly\b/,
+  /\bgood try\b/,
+];
 
 function inferVariant(text: string, state: State): BubbleVariant {
   if (state.status === "won") return "victory";

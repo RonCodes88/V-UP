@@ -11,8 +11,10 @@
 - TypeScript strict
 
 ## Hackathon rules
-- **MVP first.** Hardcode liberally — levels, words, questions, character lists. Refactor later.
-- **Don't over-engineer.** No premature abstractions. 3 similar things > 1 generic thing.
+- **HARDCODE FIRST. ALWAYS.** This is the #1 rule. Levels, words, questions, character lists, prompts, agent responses, scoring — hardcode all of it. Static arrays > config files > databases. If you're tempted to make something dynamic, stop and hardcode it.
+- **DETERMINISTIC > CLEVER.** Make it work the same way every single time. No randomness unless the gameplay literally requires it. No "smart" fallbacks. No retries. If input X happens, output Y happens. Period. A demo that fails once in front of judges is a dead demo.
+- **MVP first.** The bar is "works on stage for 60 seconds." Not "scales," not "extensible," not "handles edge cases." Get the happy path bulletproof before touching anything else.
+- **Don't over-engineer.** No premature abstractions. 3 similar things > 1 generic thing. No config systems, no plugin patterns, no "what if we want to add more topics later" — we won't, the hackathon ends Sunday.
 - **No comments unless WHY is non-obvious.** Names should explain WHAT.
 - **Don't break each other's code.** Stay in your lanes (see ownership).
 
