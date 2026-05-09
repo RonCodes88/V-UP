@@ -1,6 +1,7 @@
 "use client";
 
-import { useConversationClientTool } from "@elevenlabs/react";
+import { useConversation, useConversationClientTool } from "@elevenlabs/react";
+import { useEffect, useRef } from "react";
 import { useGameStore } from "@/app/lib/gameStore";
 
 function perceptionString(p: ReturnType<typeof useGameStore.getState>["perception"] extends () => infer R ? R : never) {
@@ -18,6 +19,10 @@ function perceptionString(p: ReturnType<typeof useGameStore.getState>["perceptio
 }
 
 export default function AgentBridge() {
+  const conv = useConversation();
+  const stepCredits = useGameStore((s) => s.stepCredits);
+  const prevCredits = useRef(stepCredits);
+
   useConversationClientTool("getPerception", () => {
     const p = useGameStore.getState().perception();
     const credits = useGameStore.getState().stepCredits;
@@ -30,15 +35,30 @@ export default function AgentBridge() {
   useConversationClientTool("moveCharacter", () => {
     const credits = useGameStore.getState().grantStep();
     if (credits === 0) {
-      return "step_already_pending; the player still has a step to take";
+      return "step_already_pending; wait for the player to take their step before granting another";
     }
-    return "step_granted; tell the player to use the arrow buttons to take their step, then ask the next question after they move";
+    return `step_granted; the player has ${credits} step(s) to walk. Stay silent until you receive a system message telling you to ask the next question.`;
   });
 
   useConversationClientTool("celebrateWin", () => {
     useGameStore.getState().celebrate();
     return "celebrated";
   });
+
+  // Fire the next-question nudge the moment credits hit zero — i.e. the
+  // player just spent their last step. The LLM generates the next question
+  // in parallel with the walk animation, eliminating the post-walk pause.
+  useEffect(() => {
+    const justSpentLast = prevCredits.current > 0 && stepCredits === 0;
+    prevCredits.current = stepCredits;
+    if (!justSpentLast) return;
+    if (conv.status !== "connected") return;
+    const p = useGameStore.getState().perception();
+    if (p.atGoal) return; // celebrateWin will fire from the agent side
+    conv.sendContextualUpdate(
+      "The player just finished walking their steps. Ask the next science question now in one short sentence. Do not praise — just ask the question.",
+    );
+  }, [stepCredits, conv]);
 
   return null;
 }
