@@ -3,6 +3,7 @@ import {
   type Direction,
   type Facing,
   type Maze,
+  findGoalAtDistance,
   generateMaze,
   isOpen,
   resolveDirection,
@@ -55,6 +56,7 @@ type State = {
   lastAgentMessage: string;
   bubbleVariant: BubbleVariant;
   bubbleKey: number; // bumps each time a new message arrives, so animations re-trigger
+  bubbleVisible: boolean; // hidden between answer→move→next-question to keep view clean
 
   // move lock — true after step is granted; cleared when user speaks
   awaitingAnswer: boolean;
@@ -84,9 +86,22 @@ type State = {
 
 const DEFAULT_SIZE = 5;
 const DEFAULT_SEED = 7;
+// 1 correct answer = 3 cells of movement. Goal at 8-10 cells → 3-4 correct
+// answers wins, with each answer letting the player walk a meaningful stretch.
+const STEPS_PER_ANSWER = 3;
+const MAX_BANKED_STEPS = 3;
+const GOAL_MIN_DISTANCE = 8;
+const GOAL_MAX_DISTANCE = 10;
 
 function freshMaze(size: number, seed: number) {
   const maze = generateMaze(size, size, seed);
+  // Place goal close to start so 1-2 correct answers (3 steps each) wins.
+  maze.goal = findGoalAtDistance(
+    maze,
+    maze.start,
+    GOAL_MIN_DISTANCE,
+    GOAL_MAX_DISTANCE,
+  );
   // Pick an initial facing that points at an OPEN corridor (never a wall),
   // so the bear starts looking down the path instead of into a wall.
   const startCell = maze.cells[maze.start.y][maze.start.x];
@@ -115,6 +130,7 @@ export const useGameStore = create<State>((set, get) => ({
     "Hi friend! Press start when you're ready for our maze adventure.",
   bubbleVariant: "intro",
   bubbleKey: 0,
+  bubbleVisible: true,
   awaitingAnswer: false,
   pendingEvaluation: false,
   stepCredits: 0,
@@ -140,13 +156,11 @@ export const useGameStore = create<State>((set, get) => ({
     const { status, awaitingAnswer, stepCredits } = get();
     if (status === "won") return stepCredits;
     if (awaitingAnswer) return stepCredits; // already granted; wait for player
-    const next = Math.min(1, stepCredits + 1); // cap at 1 to keep loop tight
+    const next = Math.min(MAX_BANKED_STEPS, stepCredits + STEPS_PER_ANSWER);
     set({
       stepCredits: next,
       awaitingAnswer: true,
-      bubbleVariant: "celebration",
-      lastAgentMessage: "Yes! Pick an arrow to take a step.",
-      bubbleKey: get().bubbleKey + 1,
+      bubbleVisible: false,
     });
     return next;
   },
@@ -158,18 +172,16 @@ export const useGameStore = create<State>((set, get) => ({
     const newFacing = resolveDirection(facing, dir);
     if (!isOpen(maze, pos.x, pos.y, newFacing)) return "blocked";
     const next = step(pos, newFacing);
-    const reachedGoal =
-      next.x === maze.goal.x && next.y === maze.goal.y;
+    const reachedGoal = next.x === maze.goal.x && next.y === maze.goal.y;
     set({
       pos: next,
       facing: newFacing,
       status: reachedGoal ? "won" : "moving",
       stepCredits: stepCredits - 1,
       bubbleVariant: reachedGoal ? "victory" : "celebration",
-      lastAgentMessage: reachedGoal
-        ? "🏆 You did it! Hooray!"
-        : "Nice step!",
+      lastAgentMessage: reachedGoal ? "🏆 You did it! Hooray!" : "Nice step!",
       bubbleKey: get().bubbleKey + 1,
+      bubbleVisible: reachedGoal, // hide bubble while walking; let agent re-open it with next question
     });
     return reachedGoal ? "goal_reached" : "moved";
   },
@@ -185,10 +197,13 @@ export const useGameStore = create<State>((set, get) => ({
       bubbleVariant: "victory",
       lastAgentMessage: "🏆 We did it! Hooray!",
       bubbleKey: get().bubbleKey + 1,
+      bubbleVisible: true,
     }),
 
   reset: (opts) => {
-    const seed = opts?.seed ?? Math.floor(Math.random() * 1e9);
+    // Default to DEFAULT_SEED so the maze layout + goal cell are identical
+    // every game — judges see the same path you rehearsed.
+    const seed = opts?.seed ?? DEFAULT_SEED;
     const size = opts?.size ?? get().size;
     set({
       ...freshMaze(size, seed),
@@ -200,6 +215,7 @@ export const useGameStore = create<State>((set, get) => ({
         "New maze, new adventure! Listen for your first question.",
       bubbleVariant: "intro",
       bubbleKey: get().bubbleKey + 1,
+      bubbleVisible: true,
       awaitingAnswer: false,
       pendingEvaluation: false,
       stepCredits: 0,
@@ -211,7 +227,16 @@ export const useGameStore = create<State>((set, get) => ({
   setError: (e) => set({ error: e }),
   setStatus: (s) => set({ status: s }),
   setAgentMessage: (text, variant) => {
-    const clean = text.replace(/<call:[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    const clean = text
+      .replace(/<tool_code>[\s\S]*?<\/tool_code>/gi, "")
+      .replace(/<tool_outputs?>[\s\S]*?<\/tool_outputs?>/gi, "")
+      .replace(/<\/?tool_[a-z_]+>/gi, "")
+      .replace(/<call:[^>]+>/g, "")
+      .replace(/\b(moveCharacter|getPerception|celebrateWin)(Tool)?\s*\([^)]*\)/gi, "")
+      .replace(/\b(moveCharacter|getPerception|celebrateWin)(Tool)?\b/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!clean) return; // pure tool-call payload — no human-facing text to show
     const lower = clean.toLowerCase();
     const positive = POSITIVE_PATTERNS.some((re) => re.test(lower));
     const negative = NEGATIVE_PATTERNS.some((re) => re.test(lower));
@@ -220,21 +245,22 @@ export const useGameStore = create<State>((set, get) => ({
         lastAgentMessage: clean,
         bubbleVariant: variant ?? inferVariant(clean, s),
         bubbleKey: s.bubbleKey + 1,
+        bubbleVisible: true,
       };
       const shouldGrant =
         s.pendingEvaluation &&
         positive &&
         !negative &&
         !s.awaitingAnswer &&
-        s.stepCredits === 0 &&
         s.status !== "won";
       if (shouldGrant) {
         return {
           ...base,
-          stepCredits: 1,
+          stepCredits: Math.min(MAX_BANKED_STEPS, s.stepCredits + STEPS_PER_ANSWER),
           awaitingAnswer: true,
           pendingEvaluation: false,
           bubbleVariant: "celebration",
+          bubbleVisible: false, // grant is silent; D-pad lights up, no overlay
         };
       }
       if (s.pendingEvaluation && negative) {
@@ -248,6 +274,7 @@ export const useGameStore = create<State>((set, get) => ({
       bubbleVariant: variant,
       lastAgentMessage: text ?? s.lastAgentMessage,
       bubbleKey: s.bubbleKey + 1,
+      bubbleVisible: true,
     })),
   onUserSpoke: () => set({ awaitingAnswer: false, pendingEvaluation: true }),
 }));

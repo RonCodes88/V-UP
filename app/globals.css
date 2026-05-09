@@ -77,3 +77,46 @@ body {
 .listening-glow {
   animation: pulseGlow 1.6s ease-in-out infinite;
 }
+
+/* ── Boss Battle animations ─────────────────────────────────── */
+
+@keyframes bossFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50%       { transform: translateY(-18px) scale(1.03); }
+}
+
+@keyframes bossHit {
+  0%   { transform: translateX(0) scale(1);     filter: drop-shadow(0 0 12px rgba(239,68,68,0.6)); }
+  15%  { transform: translateX(-16px) scale(0.87); filter: drop-shadow(0 0 48px rgba(255,255,255,0.95)) brightness(2.5); }
+  35%  { transform: translateX(12px) scale(1.12); filter: drop-shadow(0 0 24px rgba(239,68,68,0.9)); }
+  55%  { transform: translateX(-7px) scale(0.97); }
+  75%  { transform: translateX(4px) scale(1.02); }
+  100% { transform: translateX(0) scale(1);     filter: drop-shadow(0 0 12px rgba(239,68,68,0.6)); }
+}
+
+@keyframes playerHit {
+  0%, 100% { transform: translateX(0); }
+  15%      { transform: translateX(-12px); }
+  35%      { transform: translateX(12px); }
+  55%      { transform: translateX(-6px); }
+  75%      { transform: translateX(5px); }
+}
+
+@keyframes damageFloat {
+  0%   { transform: translateY(0) scale(1);   opacity: 1; }
+  40%  { transform: translateY(-44px) scale(1.35); opacity: 1; }
+  100% { transform: translateY(-90px) scale(1.1);  opacity: 0; }
+}
+
+@keyframes screenFlashRed {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  70%  { opacity: 0.35; }
+  100% { opacity: 0; }
+}
+
+.boss-float  { animation: bossFloat 2.8s ease-in-out infinite; }
+.boss-hit    { animation: bossHit 0.62s ease-out both; }
+.player-hit  { animation: playerHit 0.52s ease-in-out; }
+.damage-float { animation: damageFloat 1.0s ease-out forwards; }
+.screen-flash-red { animation: screenFlashRed 0.62s ease-out forwards; }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Html, useGLTF } from "@react-three/drei";
+import { Html, useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
@@ -38,6 +38,7 @@ function GenericCharacter({ slug }: { slug: CharacterSlug }) {
   const bubbleText = useGameStore((s) => s.lastAgentMessage);
   const bubbleVariant = useGameStore((s) => s.bubbleVariant);
   const bubbleKey = useGameStore((s) => s.bubbleKey);
+  const bubbleVisible = useGameStore((s) => s.bubbleVisible);
 
   const target = useRef({
     pos: cellToWorld(pos.x, pos.y),
@@ -114,19 +115,21 @@ function GenericCharacter({ slug }: { slug: CharacterSlug }) {
 
   return (
     <group ref={group}>
-      <Html
-        position={[0, 1.85, 0]}
-        center
-        distanceFactor={5}
-        zIndexRange={[100, 0]}
-        wrapperClass="bear-bubble-wrap"
-      >
-        <SpeechBubble
-          text={bubbleText}
-          variant={bubbleVariant}
-          bubbleKey={bubbleKey}
-        />
-      </Html>
+      {bubbleVisible && (
+        <Html
+          position={[0, 1.85, 0]}
+          center
+          distanceFactor={5}
+          zIndexRange={[100, 0]}
+          wrapperClass="bear-bubble-wrap"
+        >
+          <SpeechBubble
+            text={bubbleText}
+            variant={bubbleVariant}
+            bubbleKey={bubbleKey}
+          />
+        </Html>
+      )}
       <group ref={body} position={[0, 0.55, 0]}>
         <CharacterVisual slug={slug} />
       </group>
@@ -141,9 +144,22 @@ function CharacterVisual({ slug }: { slug: CharacterSlug }) {
 }
 
 function FoxModel() {
-  const { scene } = useGLTF("/models/Fox.glb");
+  const group = useRef<THREE.Group>(null!);
+  const { scene, animations } = useGLTF("/models/Fox.glb");
+  const { actions, names } = useAnimations(animations, group);
+
+  useEffect(() => {
+    const idle = actions[names.find((n) => /survey|idle/i.test(n)) ?? names[0]];
+    idle?.reset().fadeIn(0.2).play();
+    return () => {
+      idle?.fadeOut(0.2);
+    };
+  }, [actions, names]);
+
   return (
-    <primitive object={scene} scale={0.012} position={[0, -0.55, 0]} />
+    <group ref={group}>
+      <primitive object={scene} scale={0.012} position={[0, -0.55, 0]} />
+    </group>
   );
 }
 

@@ -35,6 +35,7 @@ export default function Character() {
   const bubbleText = useGameStore((s) => s.lastAgentMessage);
   const bubbleVariant = useGameStore((s) => s.bubbleVariant);
   const bubbleKey = useGameStore((s) => s.bubbleKey);
+  const bubbleVisible = useGameStore((s) => s.bubbleVisible);
 
   // Tween targets.
   const target = useRef({
@@ -130,15 +131,17 @@ export default function Character() {
 
   return (
     <group ref={group}>
-      <Html
-        position={[0, 1.85, 0]}
-        center
-        distanceFactor={5}
-        zIndexRange={[100, 0]}
-        wrapperClass="bear-bubble-wrap"
-      >
-        <SpeechBubble text={bubbleText} variant={bubbleVariant} bubbleKey={bubbleKey} />
-      </Html>
+      {bubbleVisible && (
+        <Html
+          position={[0, 1.85, 0]}
+          center
+          distanceFactor={5}
+          zIndexRange={[100, 0]}
+          wrapperClass="bear-bubble-wrap"
+        >
+          <SpeechBubble text={bubbleText} variant={bubbleVariant} bubbleKey={bubbleKey} />
+        </Html>
+      )}
       <group ref={body} position={[0, 0.55, 0]}>
         {/* Body */}
         <mesh castShadow position={[0, 0, 0]}>
