@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(py|pth|npy\\)$\")",
+      "Bash(ls -lh '/mnt/c/Users/Sai/Documents/GitHub/asl/backend/model/')",
+      "Read(//mnt/c/Users/Sai/Documents/GitHub/asl/backend/**)",
+      "Bash(findstr -i \"port\\\\|dev\\\\|start\\\\|backend\")",
+      "Bash(cp -r \"C:\\\\Users\\\\Sai\\\\Documents\\\\GitHub\\\\asl\\\\backend\\\\model\" \"C:\\\\Users\\\\Sai\\\\Documents\\\\GitHub\\\\hackdavis26\\\\backend\\\\model\")",
+      "Bash(cp \"C:\\\\Users\\\\Sai\\\\Documents\\\\GitHub\\\\asl\\\\backend\\\\hand_landmarker.task\" \"C:\\\\Users\\\\Sai\\\\Documents\\\\GitHub\\\\hackdavis26\\\\backend\\\\hand_landmarker.task\")",
+      "Bash(\"C:\\\\Users\\\\Sai\\\\Documents\\\\GitHub\\\\hackdavis26\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" -c \"import torch; print\\(torch.__version__\\); print\\('CUDA available:', torch.cuda.is_available\\(\\)\\); print\\('CUDA version:', torch.version.cuda\\)\")",
+      "Bash(\"C:\\\\Users\\\\Sai\\\\Documents\\\\GitHub\\\\asl\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" -c \"import torch; print\\(torch.__version__\\); print\\('CUDA available:', torch.cuda.is_available\\(\\)\\); print\\('CUDA version:', torch.version.cuda\\)\")",
+      "Bash(python -c \"import torch; print\\(torch.__version__\\); print\\('CUDA available:', torch.cuda.is_available\\(\\)\\); print\\('CUDA version:', torch.version.cuda\\)\")",
+      "Bash(python3 -c \"import torch; print\\(torch.__version__\\); print\\('CUDA available:', torch.cuda.is_available\\(\\)\\); print\\('CUDA version:', torch.version.cuda\\)\")"
+    ]
+  }
+}

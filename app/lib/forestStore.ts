@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { QUESTIONS, type MCQ } from "./forestQuestions";
 
-export type ForestStatus = "idle" | "playing" | "answering" | "walking" | "won";
+export type ForestStatus = "idle" | "answering" | "walking" | "won";
 export type ForestBubbleVariant = "intro" | "question" | "correct" | "wrong" | "victory";
 
 type ForestState = {
@@ -15,7 +15,8 @@ type ForestState = {
   bubbleKey: number;
   awaitingMove: boolean;
   pendingEvaluation: boolean;
-  questionReady: boolean;  // true only after agent has spoken the question aloud
+  questionReady: boolean;
+  signingMode: boolean;
   error: string | null;
 
   startGame: () => void;
@@ -27,6 +28,7 @@ type ForestState = {
   onUserSpoke: () => void;
   setError: (e: string | null) => void;
   setStatus: (s: ForestStatus) => void;
+  setSigningMode: (v: boolean) => void;
   reset: () => void;
 };
 
@@ -42,6 +44,7 @@ export const useForestStore = create<ForestState>((set, get) => ({
   awaitingMove: false,
   pendingEvaluation: false,
   questionReady: false,
+  signingMode: false,
   error: null,
 
   startGame: () =>
@@ -65,7 +68,6 @@ export const useForestStore = create<ForestState>((set, get) => ({
     if (status === "won") return "wrong";
     const isCorrect = letter === currentQuestion.answer;
     if (isCorrect) {
-      // awaitingMove may already be true if keyword detection fired first — don't double-count keys
       set({
         keys: awaitingMove ? keys : keys + 1,
         lastAnswer: "correct",
@@ -144,9 +146,6 @@ export const useForestStore = create<ForestState>((set, get) => ({
     const lower = clean.toLowerCase();
     const positive = POSITIVE_PATTERNS.some((re) => re.test(lower));
     const negative = NEGATIVE_PATTERNS.some((re) => re.test(lower));
-    // Agent is presenting a question when it reads choices (always says "A:" and "B:")
-    // or when the message contains a literal "?". Using choices is more reliable than
-    // "?" alone because some question texts end with "." (e.g. "Pick the word that rhymes…").
     const hasChoices = /\bA:/i.test(clean) && /\bB:/i.test(clean);
     const hasQuestion = clean.includes("?") || hasChoices;
     set((s) => {
@@ -155,7 +154,7 @@ export const useForestStore = create<ForestState>((set, get) => ({
         bubbleVariant: inferBubbleVariant(clean, s),
         bubbleKey: s.bubbleKey + 1,
       };
-      // Agent said something positive after the user answered → unlock the arrow
+      // Agent said something positive after user spoke → unlock the arrow
       const shouldUnlock =
         s.pendingEvaluation &&
         positive &&
@@ -176,7 +175,7 @@ export const useForestStore = create<ForestState>((set, get) => ({
       if (s.pendingEvaluation && negative) {
         return { ...base, pendingEvaluation: false, lastAnswer: "wrong" };
       }
-      // Agent asked a question while in answering state → show the MCQ choices
+      // Agent asked a question → show MCQ choices
       if (hasQuestion && s.status === "answering" && !s.awaitingMove) {
         return { ...base, questionReady: true };
       }
@@ -195,6 +194,8 @@ export const useForestStore = create<ForestState>((set, get) => ({
 
   setStatus: (s) => set({ status: s }),
 
+  setSigningMode: (v) => set({ signingMode: v }),
+
   reset: () =>
     set({
       nodeIndex: 0,
@@ -208,6 +209,7 @@ export const useForestStore = create<ForestState>((set, get) => ({
       awaitingMove: false,
       pendingEvaluation: false,
       questionReady: false,
+      signingMode: false,
       error: null,
     }),
 }));

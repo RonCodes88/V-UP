@@ -5,6 +5,7 @@ import { useForestStore } from "@/app/lib/forestStore";
 import ForestAgentBridge from "./ForestAgentBridge";
 import ForestScene from "./ForestScene";
 import ForestHUD from "./ForestHUD";
+import ASLSigningOverlay from "./ASLSigningOverlay";
 
 export default function ForestGame() {
   const setError = useForestStore((s) => s.setError);
@@ -38,6 +39,7 @@ export default function ForestGame() {
         <ForestScene />
         <ForestAgentBridge />
         <ForestHUD />
+        <ASLSigningOverlay />
       </div>
     </ConversationProvider>
   );

@@ -27,6 +27,8 @@ export default function ForestHUD() {
   const setError = useForestStore((s) => s.setError);
   const setStatus = useForestStore((s) => s.setStatus);
   const startGame = useForestStore((s) => s.startGame);
+  const signingMode = useForestStore((s) => s.signingMode);
+  const setSigningMode = useForestStore((s) => s.setSigningMode);
 
   const router = useRouter();
   const conv = useConversation();
@@ -46,7 +48,6 @@ export default function ForestHUD() {
       if (!res.ok) throw new Error(`Signed URL fetch failed: ${res.status}`);
       const { signedUrl, error: apiErr } = await res.json();
       if (apiErr) throw new Error(apiErr);
-      setStatus("answering");
       conv.startSession({
         signedUrl,
         overrides: {
@@ -123,13 +124,25 @@ export default function ForestHUD() {
                 {muted ? "🔇 Mic off" : "🎤 Mic on"}
               </button>
             )}
+            {connected && (
+              <button
+                onClick={() => {
+                  const next = !signingMode;
+                  setSigningMode(next);
+                  conv.setMuted(next);
+                }}
+                className={`rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md ring-1 transition ${signingMode ? "bg-emerald-500/40 text-emerald-100 ring-emerald-400/60 hover:bg-emerald-500/50" : "bg-white/10 text-white ring-white/20 hover:bg-white/20"}`}
+              >
+                {signingMode ? "✋ Signing ON" : "✋ Sign Mode"}
+              </button>
+            )}
           </div>
         </header>
 
         <div className="flex-1" />
 
         {/* Center message card */}
-        {forestStatus !== "idle" && forestStatus !== "won" && !awaitingMove && !isWalking && (
+        {forestStatus === "answering" && !awaitingMove && !isWalking && (
           <div className="pointer-events-none absolute left-1/2 top-[38%] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 px-6">
             <div
               key={lastAgentMessage}
@@ -208,7 +221,9 @@ export default function ForestHUD() {
                 );
               })}
             </div>
-            <div className="text-xs text-white/50 font-medium">🎤 Say "A", "B", "C", or "D" to answer</div>
+            <div className="text-xs text-white/50 font-medium">
+              {signingMode ? "✋ Space = add letter · Enter = submit word" : '🎤 Say "A", "B", "C", or "D" to answer'}
+            </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={stop}

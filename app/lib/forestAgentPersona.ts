@@ -47,12 +47,11 @@ When the child gets an answer wrong, you MUST say the hint EXACTLY as written in
 - One question at a time. Never ask the next question until the child walks.
 - NEVER say "wrong", "incorrect", "no", "failed", "bad". Always encouraging.
 - No sarcasm. No adult humor. Warm, patient, forest-guide energy.
+- NEVER say "here is your next question", "next question", "question number", or any similar filler before reading a question. Just read the question directly.
 `;
 
 export function buildForestFirstMessage(): string {
   const q = QUESTIONS[0];
-  // Leading filler gives the WebSocket audio pipeline time to warm up so the
-  // meaningful content isn't clipped on the first utterance.
   return (
     `Hello! Hello! Hi there, explorer! I'm Finn, your forest guide. We're going to collect Knowledge Keys hidden along this magical path. Answer all 7 questions and the treasure chest opens! Here is your first question: ${q.question} ` +
     `Choice A: ${q.choices.A}. Choice B: ${q.choices.B}. Choice C: ${q.choices.C}. Choice D: ${q.choices.D}. Which one is it?`
