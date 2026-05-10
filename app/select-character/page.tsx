@@ -1,22 +1,21 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CHARACTER_LIST, type CharacterSlug } from "@/app/lib/characters";
 import { TOPIC_TO_ROUTE, useHubStore, type Topic } from "@/app/lib/hubStore";
 
+const CharacterPreview = dynamic(
+  () => import("@/app/components/hub/CharacterPreview"),
+  { ssr: false },
+);
+
 const TOPIC_LABEL: Record<Topic, string> = {
   science: "science",
   math: "math",
   spelling_asl: "spelling & ASL",
-};
-
-const CHARACTER_EMOJI: Record<CharacterSlug, string> = {
-  bear: "🐻",
-  fox: "🦊",
-  robot: "🤖",
-  cat: "🐱",
 };
 
 const CHARACTER_BLURB: Record<CharacterSlug, string> = {
@@ -89,10 +88,10 @@ export default function SelectCharacterPage() {
                 }}
               >
                 <div
-                  className="flex h-28 w-28 items-center justify-center rounded-full text-6xl shadow-inner ring-4 ring-white/10 transition group-hover:scale-110"
-                  style={{ background: `${c.color}33` }}
+                  className="h-40 w-40 overflow-hidden rounded-full ring-4 ring-white/10 transition group-hover:ring-white/30"
+                  style={{ background: `${c.color}22` }}
                 >
-                  {CHARACTER_EMOJI[c.slug]}
+                  <CharacterPreview slug={c.slug} hovered={isHover} />
                 </div>
                 <div className="mt-4 text-xl font-extrabold">{c.label}</div>
                 <div className="mt-1 text-xs text-white/70">

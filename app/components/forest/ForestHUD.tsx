@@ -4,6 +4,7 @@ import { useConversation } from "@elevenlabs/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForestStore } from "@/app/lib/forestStore";
+import { useHubStore } from "@/app/lib/hubStore";
 import { buildForestFirstMessage, FOREST_SYSTEM_PROMPT } from "@/app/lib/forestAgentPersona";
 
 const CHOICE_COLORS = {
@@ -44,7 +45,8 @@ export default function ForestHUD() {
     try {
       setError(null);
       startGame();
-      const res = await fetch("/api/signed-url/spell");
+      const character = useHubStore.getState().selectedCharacter ?? "robot";
+      const res = await fetch(`/api/signed-url/spell?character=${character}`);
       if (!res.ok) throw new Error(`Signed URL fetch failed: ${res.status}`);
       const { signedUrl, error: apiErr } = await res.json();
       if (apiErr) throw new Error(apiErr);

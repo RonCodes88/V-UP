@@ -4,6 +4,7 @@ import { ConversationProvider } from "@elevenlabs/react";
 import { useBossStore } from "@/app/lib/bossStore";
 import BossAgentBridge from "./BossAgentBridge";
 import BossArena3D from "./BossArena3D";
+import BossDrawingPad from "./BossDrawingPad";
 import BossHUD from "./BossHUD";
 
 export default function BossGame() {
@@ -45,6 +46,7 @@ export default function BossGame() {
 
         <BossAgentBridge />
         <BossHUD />
+        <BossDrawingPad />
       </div>
     </ConversationProvider>
   );

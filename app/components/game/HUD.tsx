@@ -70,11 +70,11 @@ export default function HUD() {
     try {
       setError(null);
       reset();
-      const res = await fetch("/api/signed-url");
+      const slug = useHubStore.getState().selectedCharacter;
+      const res = await fetch(`/api/signed-url?character=${slug ?? "bear"}`);
       if (!res.ok) throw new Error(`Signed URL fetch failed: ${res.status}`);
       const { signedUrl, error: apiErr } = await res.json();
       if (apiErr) throw new Error(apiErr);
-      const slug = useHubStore.getState().selectedCharacter;
       setStatus("playing");
       conv.startSession({
         signedUrl,

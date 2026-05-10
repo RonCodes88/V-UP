@@ -9,11 +9,11 @@ import type { CharacterSlug } from "@/app/lib/characters";
 
 const MAX_HP = 100;
 
-const CHARACTER_EMOJIS: Record<CharacterSlug, string> = {
-  bear: "🐻",
-  fox: "🦊",
-  robot: "🤖",
-  cat: "🐱",
+const CHARACTER_NAMES: Record<CharacterSlug, string> = {
+  bear: "Bear",
+  fox: "Fox",
+  robot: "Robot",
+  cat: "Cat",
 };
 
 type FloatNum = { id: number; text: string; side: "boss" | "player" };
@@ -22,11 +22,10 @@ export default function BossHUD() {
   const router = useRouter();
   const conv = useConversation();
   const connected = conv.status === "connected";
-  const isSpeaking = conv.isSpeaking;
   const muted = conv.isMuted;
 
   const characterSlug = useHubStore((s) => s.selectedCharacter);
-  const playerEmoji = CHARACTER_EMOJIS[characterSlug ?? "bear"];
+  const playerName = CHARACTER_NAMES[characterSlug ?? "bear"];
 
   const status = useBossStore((s) => s.status);
   const playerHP = useBossStore((s) => s.playerHP);
@@ -42,6 +41,9 @@ export default function BossHUD() {
   const setError = useBossStore((s) => s.setError);
   const setStatus = useBossStore((s) => s.setStatus);
   const reset = useBossStore((s) => s.reset);
+  const whiteboardOpen = useBossStore((s) => s.whiteboardOpen);
+  const openWhiteboard = useBossStore((s) => s.openWhiteboard);
+  const closeWhiteboard = useBossStore((s) => s.closeWhiteboard);
 
   const [starting, setStarting] = useState(false);
   const [screenFlash, setScreenFlash] = useState(false);
@@ -50,7 +52,7 @@ export default function BossHUD() {
   useEffect(() => {
     if (bossHitKey === 0) return;
     const id = Date.now();
-    setFloatNums((prev) => [...prev, { id, text: "−10", side: "boss" }]);
+    setFloatNums((prev) => [...prev, { id, text: "-10", side: "boss" }]);
     const remove = setTimeout(
       () => setFloatNums((prev) => prev.filter((n) => n.id !== id)),
       1100,
@@ -62,7 +64,7 @@ export default function BossHUD() {
     if (playerHitKey === 0) return;
     setScreenFlash(true);
     const id = Date.now() + 1;
-    setFloatNums((prev) => [...prev, { id, text: "−10", side: "player" }]);
+    setFloatNums((prev) => [...prev, { id, text: "-10", side: "player" }]);
     const flash = setTimeout(() => setScreenFlash(false), 650);
     const remove = setTimeout(
       () => setFloatNums((prev) => prev.filter((n) => n.id !== id)),
@@ -80,7 +82,8 @@ export default function BossHUD() {
     try {
       setError(null);
       reset();
-      const res = await fetch("/api/signed-url?game=boss");
+      const slug = useHubStore.getState().selectedCharacter ?? "bear";
+      const res = await fetch(`/api/signed-url?game=boss&character=${slug}`);
       if (!res.ok) throw new Error(`Signed URL fetch failed: ${res.status}`);
       const { signedUrl, error: apiErr } = await res.json();
       if (apiErr) throw new Error(apiErr);
@@ -121,7 +124,6 @@ export default function BossHUD() {
 
   return (
     <>
-      {/* Red screen flash on player hit */}
       {screenFlash && (
         <div
           className="pointer-events-none absolute inset-0 z-50 screen-flash-red"
@@ -139,12 +141,12 @@ export default function BossHUD() {
             }}
             className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white shadow-lg ring-1 ring-white/20 backdrop-blur-md transition hover:bg-white/20"
           >
-            ← Hub
+            Back
           </button>
 
           <div className="flex items-center gap-2">
             <span className="text-sm font-extrabold tracking-tight text-white drop-shadow">
-              ⚔️ Boss Battle
+              Boss Battle
             </span>
             {status === "battling" && (
               <>
@@ -152,40 +154,13 @@ export default function BossHUD() {
                   Turn {turn}
                 </span>
                 <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-200 ring-1 ring-amber-400/30">
-                  {"★".repeat(tier)}{"☆".repeat(4 - tier)} Tier {tier}
+                  Tier {tier}
                 </span>
               </>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            {connected && (
-              <>
-                <div className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-xs text-white/80 ring-1 ring-white/20">
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      muted
-                        ? "bg-rose-400"
-                        : isSpeaking
-                          ? "bg-emerald-400 listening-glow"
-                          : "bg-emerald-300"
-                    }`}
-                  />
-                  {muted ? "Mic off" : isSpeaking ? "Speaking" : "Listening"}
-                </div>
-                <button
-                  onClick={() => conv.setMuted(!muted)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md ring-1 transition ${
-                    muted
-                      ? "bg-rose-500/30 text-rose-100 ring-rose-400/50 hover:bg-rose-500/40"
-                      : "bg-white/10 text-white ring-white/20 hover:bg-white/20"
-                  }`}
-                >
-                  {muted ? "🎤 Unmute" : "🔇 Mute"}
-                </button>
-              </>
-            )}
-          </div>
+          <div className="w-12" />
         </header>
 
         {/* HP Bars */}
@@ -195,7 +170,7 @@ export default function BossHUD() {
             <div>
               <div className="mb-1 flex items-center justify-between text-xs font-bold">
                 <span className="text-white/90">
-                  {playerEmoji} You
+                  {playerName}
                 </span>
                 <span
                   className={`${
@@ -216,7 +191,7 @@ export default function BossHUD() {
             {/* Boss HP */}
             <div>
               <div className="mb-1 flex items-center justify-between text-xs font-bold">
-                <span className="text-white/90">👹 INFERNAL TITAN</span>
+                <span className="text-white/90">INFERNAL TITAN</span>
                 <span
                   className={`${
                     bossHPPct <= 25 ? "animate-pulse text-amber-300" : "text-white/70"
@@ -235,11 +210,10 @@ export default function BossHUD() {
           </div>
         )}
 
-        {/* Arena — 3D scene renders behind. We only overlay damage numbers + agent bubble. */}
+        {/* Arena overlay — damage numbers + agent bubble */}
         <div className="relative flex flex-1 flex-col items-stretch justify-between gap-4 px-6 py-2">
           {status === "battling" && (
             <>
-              {/* Boss damage numbers — anchored top-center over the 3D boss */}
               <div className="pointer-events-none relative mx-auto h-12 w-72">
                 {floatNums
                   .filter((n) => n.side === "boss")
@@ -257,7 +231,6 @@ export default function BossHUD() {
                 </div>
               </div>
 
-              {/* Player damage numbers — anchored bottom-center over the 3D player */}
               <div className="pointer-events-none relative mx-auto h-10 w-60">
                 {floatNums
                   .filter((n) => n.side === "player")
@@ -272,7 +245,6 @@ export default function BossHUD() {
                   ))}
               </div>
 
-              {/* Agent speech bubble — pinned along the bottom over the 3D scene */}
               <div
                 key={bubbleKey}
                 className="center-card pointer-events-none mx-auto mb-2 w-full max-w-xl rounded-2xl border border-rose-500/30 bg-gradient-to-br from-rose-950/70 to-slate-900/70 p-4 shadow-2xl backdrop-blur-md"
@@ -288,13 +260,37 @@ export default function BossHUD() {
           )}
         </div>
 
-        {/* Bottom controls */}
+        {/* Bottom controls — text input, mic toggle, whiteboard, retreat */}
         {status === "battling" && (
           <div className="pointer-events-auto flex items-center gap-3 p-4">
             <TypeAnswer
               onSubmit={(text) => conv.sendUserMessage(text)}
               disabled={!connected}
             />
+            {connected && (
+              <button
+                onClick={() => conv.setMuted(!muted)}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold shadow-xl ring-1 transition ${
+                  muted
+                    ? "bg-emerald-400 text-emerald-950 ring-emerald-200 hover:bg-emerald-300"
+                    : "bg-rose-500 text-rose-50 ring-rose-300 hover:bg-rose-400"
+                }`}
+              >
+                {muted ? "Start Listening" : "Stop Listening"}
+              </button>
+            )}
+            <button
+              onClick={() =>
+                whiteboardOpen ? closeWhiteboard() : openWhiteboard()
+              }
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold shadow-xl ring-1 transition ${
+                whiteboardOpen
+                  ? "bg-rose-500/90 text-rose-50 ring-rose-300"
+                  : "bg-white/10 text-white ring-white/20 hover:bg-white/20"
+              }`}
+            >
+              Whiteboard
+            </button>
             <button
               onClick={stop}
               className="shrink-0 rounded-full bg-rose-600/80 px-4 py-2 text-sm font-semibold text-rose-50 shadow-xl transition hover:bg-rose-500"
@@ -315,25 +311,22 @@ export default function BossHUD() {
       {status === "idle" && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="center-card pointer-events-auto mx-6 w-full max-w-md rounded-3xl border-2 border-rose-500/40 bg-gradient-to-br from-rose-950/70 to-slate-900/70 p-8 text-center shadow-2xl backdrop-blur-md">
-            <div className="select-none text-7xl" style={{ textShadow: "0 0 40px rgba(239,68,68,0.7)" }}>
-              👹⚔️{playerEmoji}
-            </div>
             <div className="mt-3 text-3xl font-extrabold tracking-tight text-white">
-              Boss Battle!
+              Boss Battle
             </div>
             <div className="mt-2 text-sm text-white/80">
               The INFERNAL TITAN awaits. Answer math questions fast to deal damage.
               One wrong answer — the boss strikes back!
             </div>
             <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs text-rose-200">
-              ⚡ Quick-fire questions! Rapid answers = rapid attacks!
+              Quick-fire questions! Rapid answers = rapid attacks!
             </div>
             <button
               onClick={start}
               disabled={starting}
               className="mt-5 rounded-full bg-rose-500 px-8 py-3 text-base font-bold text-rose-50 shadow-2xl shadow-rose-500/40 transition hover:scale-105 hover:bg-rose-400 disabled:opacity-60 disabled:hover:scale-100"
             >
-              {starting ? "Connecting…" : "⚔️ Start Battle"}
+              {starting ? "Connecting..." : "Start Battle"}
             </button>
             {error && (
               <div className="mt-3 text-xs text-rose-300">{error}</div>
@@ -346,7 +339,6 @@ export default function BossHUD() {
       {status === "victory" && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="center-card pointer-events-auto mx-6 w-full max-w-lg rounded-3xl border-2 border-yellow-300/60 bg-gradient-to-br from-yellow-400/30 to-amber-600/30 px-12 py-10 text-center shadow-2xl backdrop-blur-md">
-            <div className="select-none text-6xl">🏆⚔️✨</div>
             <div className="mt-3 text-4xl font-extrabold text-yellow-200 drop-shadow-lg">
               Victory!
             </div>
@@ -362,7 +354,7 @@ export default function BossHUD() {
               }}
               className="mt-6 rounded-full bg-emerald-400 px-8 py-3 text-base font-bold text-emerald-950 shadow-xl transition hover:scale-105 hover:bg-emerald-300"
             >
-              ⚔️ Fight Again
+              Fight Again
             </button>
           </div>
         </div>
@@ -372,12 +364,11 @@ export default function BossHUD() {
       {status === "defeat" && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="center-card pointer-events-auto mx-6 w-full max-w-lg rounded-3xl border-2 border-rose-600/60 bg-gradient-to-br from-rose-950/70 to-slate-900/70 px-12 py-10 text-center shadow-2xl backdrop-blur-md">
-            <div className="select-none text-6xl">💀⚔️👹</div>
             <div className="mt-3 text-4xl font-extrabold text-rose-200 drop-shadow-lg">
               Defeated!
             </div>
             <div className="mt-2 text-base text-white/80">
-              The INFERNAL TITAN stands victorious… but math training never ends!
+              The INFERNAL TITAN stands victorious... but math training never ends!
               You got{" "}
               <span className="font-bold text-rose-300">{correctAnswers}</span>{" "}
               correct.
@@ -389,7 +380,7 @@ export default function BossHUD() {
               }}
               className="mt-6 rounded-full bg-rose-500 px-8 py-3 text-base font-bold text-rose-50 shadow-xl transition hover:scale-105 hover:bg-rose-400"
             >
-              ⚔️ Try Again
+              Try Again
             </button>
           </div>
         </div>
@@ -422,7 +413,7 @@ function TypeAnswer({
         type="text"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Type your answer if it's loud…"
+        placeholder="Type your answer..."
         disabled={disabled}
         className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
       />
