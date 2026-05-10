@@ -65,6 +65,9 @@ type State = {
   // user just spoke/typed — next agent reply gets keyword-evaluated for grant
   pendingEvaluation: boolean;
 
+  // voice movement — when true, mic stays open during movement for direction keywords
+  voiceMovementEnabled: boolean;
+
   // step credits — earned by answering correctly, spent by player to move
   stepCredits: number;
 
@@ -87,6 +90,7 @@ type State = {
   setAgentMessage: (text: string, variant?: BubbleVariant) => void;
   onUserSpoke: () => void;
   setBubble: (variant: BubbleVariant, text?: string) => void;
+  toggleVoiceMovement: () => void;
 };
 
 const DEFAULT_SIZE = 5;
@@ -131,13 +135,13 @@ export const useGameStore = create<State>((set, get) => ({
   error: null,
   seed: DEFAULT_SEED,
   size: DEFAULT_SIZE,
-  lastAgentMessage:
-    "Hi friend! Press start when you're ready for our maze adventure.",
+  lastAgentMessage: "",
   bubbleVariant: "intro",
   bubbleKey: 0,
-  bubbleVisible: true,
+  bubbleVisible: false,
   awaitingAnswer: false,
   pendingEvaluation: false,
+  voiceMovementEnabled: false,
   stepCredits: 0,
   questionIndex: 0,
 
@@ -199,7 +203,7 @@ export const useGameStore = create<State>((set, get) => ({
           ? "intro"
           : "celebration",
       lastAgentMessage: reachedGoal
-        ? "🏆 You did it! Hooray!"
+        ? "You did it! Hooray!"
         : isLastStep
           ? `Here is the next question! ${nextQuestion.text}`
           : "Nice step!",
@@ -218,7 +222,7 @@ export const useGameStore = create<State>((set, get) => ({
     set({
       status: "won",
       bubbleVariant: "victory",
-      lastAgentMessage: "🏆 We did it! Hooray!",
+      lastAgentMessage: "We did it! Hooray!",
       bubbleKey: get().bubbleKey + 1,
       bubbleVisible: true,
     }),
@@ -234,13 +238,13 @@ export const useGameStore = create<State>((set, get) => ({
       error: null,
       seed,
       size,
-      lastAgentMessage:
-        "New maze, new adventure! Listen for your first question.",
+      lastAgentMessage: "",
       bubbleVariant: "intro",
       bubbleKey: get().bubbleKey + 1,
-      bubbleVisible: true,
+      bubbleVisible: false,
       awaitingAnswer: false,
       pendingEvaluation: false,
+      voiceMovementEnabled: get().voiceMovementEnabled,
       stepCredits: 0,
       questionIndex: 0,
     });
@@ -258,9 +262,15 @@ export const useGameStore = create<State>((set, get) => ({
       .replace(/<call:[^>]+>/g, "")
       .replace(/\b(moveCharacter|getPerception|celebrateWin)(Tool)?\s*\([^)]*\)/gi, "")
       .replace(/\b(moveCharacter|getPerception|celebrateWin)(Tool)?\b/gi, "")
+      .replace(/\b(i will|i'll|let me|going to|gonna)\s+(call|use|invoke|run)\b[^.!?]*/gi, "")
+      .replace(/\bSTEP_GRANTED:\d+\b/gi, "")
+      .replace(/\[ACCEPT:[^\]]*\]/gi, "")
+      .replace(/Speak this verbatim[^"]*"?/gi, "")
       .replace(/\s+/g, " ")
       .trim();
-    if (!clean) return; // pure tool-call payload — no human-facing text to show
+    if (!clean) return;
+    const state = get();
+    if (state.awaitingAnswer && state.stepCredits === 0) return;
     const lower = clean.toLowerCase();
     const positive = POSITIVE_PATTERNS.some((re) => re.test(lower));
     const negative = NEGATIVE_PATTERNS.some((re) => re.test(lower));
@@ -305,6 +315,7 @@ export const useGameStore = create<State>((set, get) => ({
       bubbleVisible: true,
     })),
   onUserSpoke: () => set({ awaitingAnswer: false, pendingEvaluation: true }),
+  toggleVoiceMovement: () => set((s) => ({ voiceMovementEnabled: !s.voiceMovementEnabled })),
 }));
 
 const POSITIVE_PATTERNS = [

@@ -34,7 +34,7 @@ export default function AgentBridge() {
     if (credits === 0) {
       return "step_already_pending";
     }
-    return `step_granted; ${credits} step(s) banked. Say "Pick a direction!" then stay silent until the SYSTEM gives you the next question text.`;
+    return `STEP_GRANTED:${credits}`;
   });
 
   useConversationClientTool("celebrateWin", () => {
