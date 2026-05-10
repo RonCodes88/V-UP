@@ -34,12 +34,24 @@ const BOSS_CORRECT_PATTERNS = [
 ];
 
 const BOSS_WRONG_PATTERNS = [
-  /wrong!/i,
+  /\bwrong!/i,
   /\bincorrect\b/i,
-  /the correct answer/i,
-  /\btry again\b/i,
-  /\bmiss!\b/i,
-  /\bno!\b/i,
+  /\bthe correct answer\b/i,
+  /\bmiss!/i,
+];
+
+// Phrases the agent uses when the player said nothing / unclear.
+// If any match, we MUST NOT treat the message as a wrong answer.
+const BOSS_SILENCE_PATTERNS = [
+  /\bspeak,?\s*mortal\b/i,
+  /\bi (?:cannot|can'?t|cant) hear\b/i,
+  /\bsay (?:a|the) (?:number|answer)\b/i,
+  /\bspeak up\b/i,
+  /\blouder\b/i,
+  /\brepeat (?:that|the question)\b/i,
+  /\bwhat did you say\b/i,
+  /\bdid you say something\b/i,
+  /\banswer me\b/i,
 ];
 
 type State = {
@@ -116,8 +128,11 @@ export const useBossStore = create<State>((set, get) => ({
 
   dealDamageToBoss: (amount = DEFAULT_DAMAGE) => {
     const s = get();
-    const newBossHP = Math.max(0, s.bossHP - amount);
-    const evt: DamageEvent = { id: Date.now(), target: "boss", amount };
+    // Cap damage to remaining HP so the killing blow lands the boss at exactly 0
+    // and the third hit in a 3-turn fight always finishes (34 → 33 → 33).
+    const dealt = Math.min(amount, s.bossHP);
+    const newBossHP = s.bossHP - dealt;
+    const evt: DamageEvent = { id: Date.now(), target: "boss", amount: dealt };
     set({
       bossHP: newBossHP,
       correctAnswers: s.correctAnswers + 1,
@@ -125,6 +140,8 @@ export const useBossStore = create<State>((set, get) => ({
       bossHitKey: s.bossHitKey + 1,
       damageEvents: [...s.damageEvents, evt],
       bubbleKey: s.bubbleKey + 1,
+      questionIndex: s.questionIndex + 1,
+      ...(newBossHP <= 0 ? { status: "victory" as BattleStatus } : {}),
     });
     const after = get();
     return `Boss HP: ${newBossHP}/${MAX_HP}. Player HP: ${after.playerHP}/${MAX_HP}. Correct: ${after.correctAnswers}. ${newBossHP <= 0 ? "BOSS_DEFEATED" : "Boss still standing!"}`;
@@ -132,14 +149,17 @@ export const useBossStore = create<State>((set, get) => ({
 
   dealDamageToPlayer: (amount = DEFAULT_DAMAGE) => {
     const s = get();
-    const newPlayerHP = Math.max(0, s.playerHP - amount);
-    const evt: DamageEvent = { id: Date.now(), target: "player", amount };
+    const dealt = Math.min(amount, s.playerHP);
+    const newPlayerHP = s.playerHP - dealt;
+    const evt: DamageEvent = { id: Date.now(), target: "player", amount: dealt };
     set({
       playerHP: newPlayerHP,
       turn: s.turn + 1,
       playerHitKey: s.playerHitKey + 1,
       damageEvents: [...s.damageEvents, evt],
       bubbleKey: s.bubbleKey + 1,
+      questionIndex: s.questionIndex + 1,
+      ...(newPlayerHP <= 0 ? { status: "defeat" as BattleStatus } : {}),
     });
     const after = get();
     return `Player HP: ${newPlayerHP}/${MAX_HP}. Boss HP: ${after.bossHP}/${MAX_HP}. ${newPlayerHP <= 0 ? "PLAYER_DEFEATED" : "Keep fighting!"}`;
@@ -152,8 +172,14 @@ export const useBossStore = create<State>((set, get) => ({
     return `Player HP: ${playerHP}/${MAX_HP}. Boss HP: ${bossHP}/${MAX_HP}. Turn: ${turn}. Correct: ${correctAnswers}. Difficulty tier: ${tier}.`;
   },
 
-  triggerVictory: () => set({ status: "victory" }),
-  triggerDefeat: () => set({ status: "defeat" }),
+  triggerVictory: () => {
+    // Guard: only declare victory if the boss is actually dead. Prevents the
+    // agent from celebrating a turn early while bossHP is still > 0.
+    if (get().bossHP <= 0) set({ status: "victory" });
+  },
+  triggerDefeat: () => {
+    if (get().playerHP <= 0) set({ status: "defeat" });
+  },
 
   reset: () =>
     set({
@@ -216,8 +242,16 @@ export const useBossStore = create<State>((set, get) => ({
     // Wrong takes priority: "Incorrect! The correct answer was X" would otherwise
     // false-trigger the correct pattern since "correct" appears in the text.
     const lower = noTags.toLowerCase();
-    const detectedWrong = BOSS_WRONG_PATTERNS.some((re) => re.test(lower));
-    const detectedCorrect = !detectedWrong && BOSS_CORRECT_PATTERNS.some((re) => re.test(lower));
+    // Only inspect the first sentence — narration after the verdict often contains
+    // dramatic words like "no!" or "miss" that aren't actual verdicts.
+    const firstSentence = lower.split(/[.!?]/)[0] ?? lower;
+    const isSilencePrompt = BOSS_SILENCE_PATTERNS.some((re) => re.test(lower));
+    const detectedWrong =
+      !isSilencePrompt && BOSS_WRONG_PATTERNS.some((re) => re.test(firstSentence));
+    const detectedCorrect =
+      !isSilencePrompt &&
+      !detectedWrong &&
+      BOSS_CORRECT_PATTERNS.some((re) => re.test(firstSentence));
 
     // Strip any structured labels from the displayed bubble
     const display = noTags
@@ -244,6 +278,7 @@ export const useBossStore = create<State>((set, get) => ({
         updates.bossHitKey = s.bossHitKey + 1;
         updates.correctAnswers = s.correctAnswers + 1;
         updates.turn = s.turn + 1;
+        updates.questionIndex = s.questionIndex + 1;
         newEvents.push({ id: Date.now(), target: "boss", amount: s.bossHP - newBossHP });
         hpChanged = true;
         if (newBossHP <= 0) updates.status = "victory";
@@ -252,6 +287,7 @@ export const useBossStore = create<State>((set, get) => ({
         updates.playerHP = newPlayerHP;
         updates.playerHitKey = s.playerHitKey + 1;
         updates.turn = (updates.turn ?? s.turn) + 1;
+        updates.questionIndex = (updates.questionIndex ?? s.questionIndex) + 1;
         newEvents.push({ id: Date.now() + 1, target: "player", amount: s.playerHP - newPlayerHP });
         hpChanged = true;
         if (newPlayerHP <= 0) updates.status = "defeat";
@@ -266,6 +302,7 @@ export const useBossStore = create<State>((set, get) => ({
           updates.playerHP = newPHP;
           updates.playerHitKey = s.playerHitKey + 1;
           updates.turn = s.turn + 1;
+          updates.questionIndex = s.questionIndex + 1;
           newEvents.push({ id: Date.now(), target: "player", amount: DEFAULT_DAMAGE });
           if (newPHP <= 0) updates.status = "defeat";
         } else if (detectedCorrect) {
@@ -274,6 +311,7 @@ export const useBossStore = create<State>((set, get) => ({
           updates.bossHitKey = s.bossHitKey + 1;
           updates.correctAnswers = s.correctAnswers + 1;
           updates.turn = s.turn + 1;
+          updates.questionIndex = s.questionIndex + 1;
           newEvents.push({ id: Date.now(), target: "boss", amount: DEFAULT_DAMAGE });
           if (newBHP <= 0) updates.status = "victory";
         }

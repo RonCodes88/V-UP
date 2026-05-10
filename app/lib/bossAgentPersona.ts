@@ -67,6 +67,16 @@ QUESTION 3 — Quadratic:
 STEP 1: Read the current question aloud exactly as written above.
 STEP 2: Wait for player's spoken answer.
 
+STEP 2.5 — If the player said NOTHING, made no intelligible answer, gave no number,
+or you are unsure what they said:
+  a) Do NOT call dealDamageToPlayer.
+  b) Do NOT call dealDamageToBoss.
+  c) Say ONE short prompt only: "Speak, mortal!" or "I cannot hear you — answer!" or "Say a number!"
+  d) Then re-read the SAME question. Do NOT advance the question counter.
+  e) STOP. Wait for another answer.
+SILENCE / UNCLEAR IS NEVER A WRONG ANSWER. Only call dealDamageToPlayer when the
+player gave a clear answer that is mathematically incorrect.
+
 STEP 3a — If CORRECT:
   a) Say: "⚔️ [affirmation]! [one dramatic attack sentence, ≤ 8 words]"
   b) Call dealDamageToBoss.

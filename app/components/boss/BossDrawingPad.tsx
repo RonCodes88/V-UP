@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBossStore } from "@/app/lib/bossStore";
 
+const cinzel = { fontFamily: "var(--font-cinzel), serif" } as const;
+
 const CANVAS_W = 1024;
 const CANVAS_H = 768;
 const STROKE_WIDTH = 4;
@@ -39,13 +41,8 @@ export default function BossDrawingPad() {
   const setSubmitting = useBossStore((s) => s.setSubmitting);
   const setVerdict = useBossStore((s) => s.setVerdict);
   const verdict = useBossStore((s) => s.verdict);
-  const verdictNote = useBossStore((s) => s.verdictNote);
   const annotatedImage = useBossStore((s) => s.annotatedImage);
-  const dealDamageToBoss = useBossStore((s) => s.dealDamageToBoss);
-  const dealDamageToPlayer = useBossStore((s) => s.dealDamageToPlayer);
-  const advanceQuestion = useBossStore((s) => s.advanceQuestion);
   const currentQuestion = useBossStore((s) => s.currentQuestion);
-  const setAgentMessage = useBossStore((s) => s.setAgentMessage);
 
   const question = currentQuestion();
 
@@ -165,14 +162,6 @@ export default function BossDrawingPad() {
         ? `data:image/jpeg;base64,${data.annotatedImageBase64}`
         : null;
       setVerdict(data.verdict, data.note, annotated);
-      if (data.verdict === "correct") {
-        dealDamageToBoss();
-        advanceQuestion();
-        setAgentMessage("Direct hit! The titan staggers!");
-      } else {
-        dealDamageToPlayer();
-        setAgentMessage(data.note || "The titan strikes back! Try again!");
-      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Grading failed";
       setError(msg);
@@ -190,20 +179,23 @@ export default function BossDrawingPad() {
   const isCorrect = verdict === "correct";
 
   return (
-    <div className="pointer-events-auto absolute right-0 top-0 z-30 flex h-full w-[480px] flex-col gap-3 border-l border-rose-500/20 bg-black/70 p-4 shadow-2xl backdrop-blur-md">
+    <div
+      className="pointer-events-auto absolute right-0 top-0 z-30 flex h-full w-[480px] flex-col gap-3 border-l border-rose-500/20 bg-black/70 p-4 shadow-2xl backdrop-blur-md"
+      style={cinzel}
+    >
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-widest text-rose-400/80">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-rose-400/80">
             Whiteboard
           </div>
-          <div className="text-sm font-bold text-white">
+          <div className="text-sm uppercase tracking-[0.2em] text-white">
             {question.difficulty} · {question.category}
           </div>
         </div>
         <button
           onClick={close}
           disabled={submitting}
-          className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20 disabled:opacity-40"
+          className="shrink-0 border border-rose-500/40 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-rose-400/70 transition hover:border-rose-400 hover:text-rose-300 disabled:opacity-40"
         >
           Close
         </button>
@@ -211,7 +203,7 @@ export default function BossDrawingPad() {
 
       {!showResultView && (
         <>
-          <div className="rounded-2xl border-2 border-white/15 bg-white shadow-xl">
+          <div className="border border-white/15 bg-white shadow-xl">
             <canvas
               ref={canvasRef}
               width={CANVAS_W}
@@ -226,7 +218,6 @@ export default function BossDrawingPad() {
                 height: "auto",
                 touchAction: "none",
                 cursor: submitting ? "wait" : "crosshair",
-                borderRadius: "1rem",
               }}
             />
           </div>
@@ -236,14 +227,14 @@ export default function BossDrawingPad() {
               <button
                 onClick={undo}
                 disabled={submitting || !hasInk}
-                className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20 disabled:opacity-40"
+                className="shrink-0 border border-white/20 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-white/55 transition hover:border-white/40 hover:text-white/90 disabled:opacity-40"
               >
                 Undo
               </button>
               <button
                 onClick={reset}
                 disabled={submitting}
-                className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20 disabled:opacity-40"
+                className="shrink-0 border border-white/20 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-white/55 transition hover:border-white/40 hover:text-white/90 disabled:opacity-40"
               >
                 Clear
               </button>
@@ -251,14 +242,14 @@ export default function BossDrawingPad() {
             <button
               onClick={submit}
               disabled={submitting || !hasInk}
-              className="rounded-full bg-rose-500 px-6 py-2.5 text-sm font-bold text-rose-50 shadow-xl ring-2 ring-rose-300 transition hover:scale-105 hover:bg-rose-400 disabled:scale-100 disabled:opacity-50"
+              className="shrink-0 border border-amber-500/60 px-6 py-2 text-[10px] uppercase tracking-[0.2em] text-amber-400 transition hover:bg-amber-500/10 disabled:opacity-40"
             >
               {submitting ? "Grading…" : "Submit"}
             </button>
           </div>
 
           {error && (
-            <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-2 text-xs text-rose-200">
+            <div className="border border-rose-400/40 bg-rose-500/10 p-2 text-[10px] uppercase tracking-[0.2em] text-rose-200">
               {error}
             </div>
           )}
@@ -267,36 +258,12 @@ export default function BossDrawingPad() {
 
       {showResultView && (
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
-          <div
-            className={`rounded-2xl border-2 p-4 text-center ${
-              isCorrect
-                ? "border-emerald-300/60 bg-emerald-500/20"
-                : "border-rose-300/60 bg-rose-500/20"
-            }`}
-          >
-            <div className="text-4xl font-black">{isCorrect ? "HIT" : "MISS"}</div>
-            <div
-              className={`mt-1 text-2xl font-extrabold ${
-                isCorrect ? "text-emerald-100" : "text-rose-100"
-              }`}
-            >
-              {isCorrect ? "Direct hit!" : "Boss strikes back!"}
-            </div>
-            {verdictNote && (
-              <div className="mt-1 text-sm text-white/85">{verdictNote}</div>
-            )}
-          </div>
-
-          <div className="rounded-2xl border-2 border-white/15 bg-white shadow-xl">
+          <div className="border border-white/15 bg-white shadow-xl">
             {annotatedImage ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={annotatedImage}
-                alt="Annotated work"
-                className="w-full rounded-2xl"
-              />
+              <img src={annotatedImage} alt="Annotated work" className="w-full" />
             ) : (
-              <div className="flex aspect-[4/3] items-center justify-center text-sm text-stone-500">
+              <div className="flex aspect-[4/3] items-center justify-center text-[10px] uppercase tracking-[0.2em] text-stone-500">
                 No annotated image returned
               </div>
             )}
@@ -304,10 +271,10 @@ export default function BossDrawingPad() {
 
           <button
             onClick={continueAfterVerdict}
-            className={`rounded-full px-6 py-3 text-base font-bold shadow-xl ring-2 transition hover:scale-105 ${
+            className={`shrink-0 border px-6 py-2 text-[10px] uppercase tracking-[0.2em] transition ${
               isCorrect
-                ? "bg-emerald-400 text-emerald-950 ring-emerald-200 hover:bg-emerald-300"
-                : "bg-rose-500 text-rose-50 ring-rose-300 hover:bg-rose-400"
+                ? "border-amber-500/60 text-amber-400 hover:bg-amber-500/10"
+                : "border-rose-500/40 text-rose-400/70 hover:border-rose-400 hover:text-rose-300"
             }`}
           >
             {isCorrect ? "Next Problem" : "Try Again"}

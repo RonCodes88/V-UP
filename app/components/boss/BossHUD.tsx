@@ -404,7 +404,7 @@ export default function BossHUD() {
             >
               The Infernal Titan Falls
             </p>
-            <p className="mt-4 text-sm text-white/80">
+            <p className="mt-4 text-sm tracking-wide text-white/80" style={cinzel}>
               You answered{" "}
               <span className="font-bold text-amber-300">{correctAnswers}</span>{" "}
               questions correctly!
