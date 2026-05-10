@@ -31,14 +31,6 @@ body {
   to   { transform: rotate(360deg); }
 }
 
-.logo-arrow {
-  display: inline-block;
-  transform-origin: center;
-}
-
-.logo-group:hover .logo-arrow {
-  animation: spin360 0.55s ease-in-out;
-}
 
 @keyframes bubblePop {
   0% {
