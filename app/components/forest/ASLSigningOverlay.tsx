@@ -26,7 +26,7 @@ export default function ASLSigningOverlay() {
   const [confidence, setConfidence] = useState(0);
   const [wordBuffer, setWordBuffer] = useState("");
   const [debug, setDebug] = useState<{ raw: string; modelUsed: string; pollCount: number; lastError: string }>({
-    raw: "–", modelUsed: "–", pollCount: 0, lastError: "",
+    raw: "-", modelUsed: "-", pollCount: 0, lastError: "",
   });
   const [showDebug, setShowDebug] = useState(false);
 
@@ -67,7 +67,7 @@ export default function ASLSigningOverlay() {
         videoRef.current.srcObject = stream;
       }
     } catch {
-      // Permission denied or no camera — signing mode will show no feed
+      // Permission denied or no camera - signing mode will show no feed
     }
   }
 
@@ -153,13 +153,13 @@ export default function ASLSigningOverlay() {
   return (
     <div className="pointer-events-auto absolute bottom-32 right-5 flex flex-col items-end gap-2">
       {/* Webcam preview */}
-      <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-400/50 shadow-2xl">
+      <div className="relative overflow-hidden border border-amber-500/30 shadow-2xl">
         <video
           ref={videoRef}
           autoPlay
           muted
           playsInline
-          className="h-36 w-48 object-cover"
+          className="h-60 w-80 object-cover"
           style={{ transform: "scaleX(-1)" }}
         />
         {/* Detected letter badge */}
@@ -170,7 +170,12 @@ export default function ASLSigningOverlay() {
               <span className="ml-1 text-xs text-white/70">{Math.round(confidence * 100)}%</span>
             </>
           ) : (
-            <span className="text-xs text-white/50">No hand detected</span>
+            <span
+              className="text-xs text-white/50"
+              style={{ fontFamily: "var(--font-cinzel), serif" }}
+            >
+              No hand detected
+            </span>
           )}
         </div>
       </div>
@@ -205,7 +210,7 @@ export default function ASLSigningOverlay() {
                 style={{ width: `${Math.round(confidence * 100)}%` }}
               />
             </div>
-            <div className="mt-0.5 text-right text-[9px] text-white/40">{Math.round(confidence * 100)}% conf · threshold 50%</div>
+            <div className="mt-0.5 text-right text-[9px] text-white/40">{Math.round(confidence * 100)}% conf - threshold 50%</div>
           </div>
           {debug.lastError && (
             <div className="mt-1 text-rose-400 break-all">{debug.lastError}</div>
@@ -218,23 +223,26 @@ export default function ASLSigningOverlay() {
         <button
           onClick={handleBackspace}
           disabled={!wordBuffer}
-          className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20 backdrop-blur-md transition hover:bg-white/20 disabled:opacity-30"
+          className="border border-white/20 bg-black/50 px-3 py-2 text-xs font-semibold text-white/75 backdrop-blur-md transition hover:bg-white/5 disabled:opacity-30"
+          style={{ fontFamily: "var(--font-cinzel), serif" }}
         >
-          ← Back
+          Back
         </button>
         <button
           onClick={handleAppendLetter}
           disabled={!detectedLetter}
-          className="rounded-full bg-emerald-500/80 px-4 py-2 text-xs font-bold text-emerald-950 shadow-lg backdrop-blur-md transition hover:bg-emerald-400 disabled:opacity-30"
+          className="border border-amber-500/60 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-400 backdrop-blur-md transition hover:bg-amber-500/20 disabled:opacity-30"
+          style={{ fontFamily: "var(--font-cinzel), serif" }}
         >
-          ✋ Add (Space)
+          Add (Space)
         </button>
         <button
           onClick={handleSubmitWord}
           disabled={!wordBuffer}
-          className="rounded-full bg-emerald-400 px-4 py-2 text-xs font-bold text-emerald-950 shadow-xl transition hover:bg-emerald-300 disabled:opacity-30"
+          className="border border-amber-500 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-400 transition hover:bg-amber-500/20 hover:shadow-[0_0_12px_rgba(245,158,11,0.2)] disabled:opacity-30"
+          style={{ fontFamily: "var(--font-cinzel), serif" }}
         >
-          Send ↵
+          Submit
         </button>
       </div>
     </div>
