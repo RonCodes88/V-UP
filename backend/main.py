@@ -1,5 +1,6 @@
 import base64
 import os
+import tempfile
 from pathlib import Path
 
 import cv2
@@ -9,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from mediapipe import Image as MpImage, ImageFormat
 from mediapipe.tasks.python import BaseOptions
@@ -225,3 +226,93 @@ async def signed_url_spell():
     if not api_key or not agent_id:
         raise HTTPException(status_code=500, detail="Missing ELEVENLABS_API_KEY or ELEVENLABS_AGENT_SPELL_ID")
     return {"signedUrl": await _mint_signed_url(api_key, agent_id)}
+
+
+MCQ_PROMPT = """Generate exactly 3 MCQs from the transcript below.
+
+Rules:
+- Questions: short (under 8 words)
+- Each answer option: 1-2 words only
+- Mark the correct answer
+
+Output ONLY this format, nothing else:
+Q1. <question>
+A) <1-2 words>
+B) <1-2 words>
+C) <1-2 words>
+D) <1-2 words>
+Answer: <letter>
+
+Q2. <question>
+A) <1-2 words>
+B) <1-2 words>
+C) <1-2 words>
+D) <1-2 words>
+Answer: <letter>
+
+Q3. <question>
+A) <1-2 words>
+B) <1-2 words>
+C) <1-2 words>
+D) <1-2 words>
+Answer: <letter>
+
+TRANSCRIPT:
+{transcript}"""
+
+
+def _parse_mcqs(raw: str) -> list[dict]:
+    blocks = [b for b in raw.strip().split("\n\n") if "Answer:" in b]
+    results = []
+    for i, block in enumerate(blocks[:3]):
+        lines = [l.strip() for l in block.strip().splitlines()]
+        question = next((l for l in lines if l[:2] in ("Q1", "Q2", "Q3")), "")
+        question = question.split(".", 1)[-1].strip()
+        def get_choice(letter):
+            line = next((l for l in lines if l.startswith(f"{letter})")), "")
+            return line[2:].strip() or "?"
+        answer_line = next((l for l in lines if l.startswith("Answer:")), "Answer: A")
+        answer = answer_line.replace("Answer:", "").strip()[:1].upper() or "A"
+        results.append({
+            "id": i + 1,
+            "question": question or f"Question {i + 1}",
+            "choices": {"A": get_choice("A"), "B": get_choice("B"), "C": get_choice("C"), "D": get_choice("D")},
+            "answer": answer,
+            "hint": "Think carefully and try a different letter.",
+        })
+    return results
+
+
+@app.post("/api/generate-forest-questions")
+async def generate_forest_questions(video: UploadFile = File(...)):
+    import google.generativeai as genai
+    from faster_whisper import WhisperModel
+
+    api_key = os.getenv("HACKDAVIS_GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="HACKDAVIS_GEMINI_API_KEY not set")
+
+    suffix = Path(video.filename or "video.mp4").suffix or ".mp4"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(await video.read())
+        tmp_path = tmp.name
+
+    try:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        compute_type = "float16" if device == "cuda" else "int8"
+        whisper = WhisperModel("tiny", device=device, compute_type=compute_type)
+        segments, _ = whisper.transcribe(tmp_path, beam_size=5)
+        transcript = " ".join(s.text.strip() for s in segments)
+        if not transcript.strip():
+            raise HTTPException(status_code=422, detail="Could not transcribe audio from video")
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.5-flash-lite")
+        response = model.generate_content(MCQ_PROMPT.format(transcript=transcript))
+        questions = _parse_mcqs(response.text)
+        if len(questions) < 3:
+            raise HTTPException(status_code=500, detail="Could not parse 3 questions from Gemini response")
+
+        return {"questions": questions}
+    finally:
+        os.unlink(tmp_path)
