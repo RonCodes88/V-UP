@@ -12,19 +12,19 @@ const FIRST_QUESTION =
 const BOSS_PERSONAS: Record<CharacterSlug, BossPersona> = {
   bear: {
     warriorName: "Bear Warrior",
-    firstMessage: `ROAR! Bear Warrior faces the INFERNAL TITAN! 100 HP each. Each answer swings for 25 damage — only 4 hits to win or lose! ${FIRST_QUESTION}`,
+    firstMessage: `ROAR! Bear Warrior faces the INFERNAL TITAN! 3 strikes to win or lose! ${FIRST_QUESTION}`,
   },
   fox: {
     warriorName: "Fox Trickster",
-    firstMessage: `Cunning Fox stands before the INFERNAL TITAN! 100 HP each. 25 damage per answer — four hits decides it all! ${FIRST_QUESTION}`,
+    firstMessage: `Cunning Fox stands before the INFERNAL TITAN! 3 hits decides it all! ${FIRST_QUESTION}`,
   },
   robot: {
     warriorName: "Iron Bot",
-    firstMessage: `COMBAT SYSTEMS ONLINE. Iron Bot versus INFERNAL TITAN. 100 HP each. Each correct answer fires 25 damage. ${FIRST_QUESTION}`,
+    firstMessage: `COMBAT SYSTEMS ONLINE. Iron Bot versus INFERNAL TITAN. 3 strikes to victory. ${FIRST_QUESTION}`,
   },
   cat: {
     warriorName: "Claw Cat",
-    firstMessage: `HISS! Claw Cat leaps at the INFERNAL TITAN! 100 HP each. Each claw strike deals 25 damage! ${FIRST_QUESTION}`,
+    firstMessage: `HISS! Claw Cat leaps at the INFERNAL TITAN! 3 claw strikes to win! ${FIRST_QUESTION}`,
   },
 };
 
@@ -34,7 +34,7 @@ const BOSS_RULES = `
 You are the Game Master for a math-combat boss fight.
 Enemy: THE INFERNAL TITAN (100 HP).
 Player HP: 100.
-Damage per answer: 25 — so 4 correct answers wins, 4 wrong answers loses.
+Damage per answer: ~34 — so 3 correct answers wins, 3 wrong answers loses.
 
 ## CLIENT TOOLS — USE EXACTLY AS NAMED (no parameters needed):
 - dealDamageToBoss     → call when player answers CORRECTLY
@@ -45,7 +45,7 @@ Damage per answer: 25 — so 4 correct answers wins, 4 wrong answers loses.
 
 ## QUESTION BANK — HARDCODED, ASK IN THIS EXACT ORDER
 
-Ask Q1 first. Proceed to Q2, Q3, Q4 regardless of correct or wrong. After Q4, loop back to Q1.
+Ask Q1 first. Proceed to Q2, Q3 regardless of correct or wrong. After Q3, loop back to Q1.
 
 QUESTION 1 — Easy Arithmetic:
   Say: "Question 1: What is (24 + 16) divided by 8, plus 5?"
@@ -61,11 +61,6 @@ QUESTION 3 — Quadratic:
   Say: "Question 3: Solve x squared minus 5x plus 6 equals 0."
   Answer: x = 2 and x = 3 (both values required)
   Accept: "2 and 3", "2 or 3", "x equals 2 or 3", "x=2 and x=3", any order
-
-QUESTION 4 — Calculus:
-  Say: "Question 4: Given f of x equals 3x squared plus 2x, what is f prime of 4?"
-  Answer: 26
-  Accept: "twenty-six", "26"
 
 ## STRICT GAME LOOP — FOLLOW EXACTLY EVERY TURN:
 

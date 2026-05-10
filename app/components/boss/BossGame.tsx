@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { ConversationProvider } from "@elevenlabs/react";
 import { useBossStore } from "@/app/lib/bossStore";
 import BossAgentBridge from "./BossAgentBridge";
@@ -8,10 +9,13 @@ import BossDrawingPad from "./BossDrawingPad";
 import BossHUD from "./BossHUD";
 
 export default function BossGame() {
+  const resetBoss = useBossStore((s) => s.reset);
   const appendTranscript = useBossStore((s) => s.appendTranscript);
   const setError = useBossStore((s) => s.setError);
   const setStatus = useBossStore((s) => s.setStatus);
   const setAgentMessage = useBossStore((s) => s.setAgentMessage);
+
+  useEffect(() => { resetBoss(); }, [resetBoss]);
 
   return (
     <ConversationProvider

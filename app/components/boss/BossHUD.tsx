@@ -2,7 +2,7 @@
 
 import { useConversation } from "@elevenlabs/react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useBossStore } from "@/app/lib/bossStore";
 import { useHubStore } from "@/app/lib/hubStore";
 import type { CharacterSlug } from "@/app/lib/characters";
@@ -47,6 +47,16 @@ export default function BossHUD() {
 
   const [starting, setStarting] = useState(false);
   const [screenFlash, setScreenFlash] = useState(false);
+
+  const wasConnected = useRef(false);
+  useEffect(() => {
+    if (connected && !wasConnected.current) {
+      wasConnected.current = true;
+      conv.setMuted(true);
+    } else if (!connected) {
+      wasConnected.current = false;
+    }
+  }, [connected, conv]);
   const [floatNums, setFloatNums] = useState<FloatNum[]>([]);
 
   useEffect(() => {
@@ -103,7 +113,7 @@ export default function BossHUD() {
   };
 
   const tier =
-    correctAnswers < 3 ? 1 : correctAnswers < 6 ? 2 : correctAnswers < 9 ? 3 : 4;
+    correctAnswers < 2 ? 1 : correctAnswers < 4 ? 2 : correctAnswers < 6 ? 3 : 4;
 
   const bossHPPct = (bossHP / MAX_HP) * 100;
   const playerHPPct = (playerHP / MAX_HP) * 100;
