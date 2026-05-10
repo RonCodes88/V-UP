@@ -7,7 +7,7 @@ import { useForestStore } from "@/app/lib/forestStore";
 import { NODE_POSITIONS } from "./ForestPath";
 
 export default function PathArrow() {
-  const awaitingMove = useForestStore((s) => s.awaitingMove);
+  const stepCredits = useForestStore((s) => s.stepCredits);
   const nodeIndex = useForestStore((s) => s.nodeIndex);
   const status = useForestStore((s) => s.status);
   const arrowRef = useRef<THREE.Group>(null!);
@@ -37,7 +37,7 @@ export default function PathArrow() {
     arrowRef.current.rotation.y = yaw;
   });
 
-  if (!awaitingMove || status === "walking" || status === "won") return null;
+  if (stepCredits <= 0 || status === "walking" || status === "won") return null;
 
   return (
     <group position={[mx, 0, mz]}>

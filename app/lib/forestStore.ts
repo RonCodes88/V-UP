@@ -2,29 +2,25 @@ import { create } from "zustand";
 import { QUESTIONS, type MCQ } from "./forestQuestions";
 
 export type ForestStatus = "idle" | "answering" | "walking" | "won";
-export type ForestBubbleVariant = "intro" | "question" | "correct" | "wrong" | "victory";
 
 type ForestState = {
   nodeIndex: number;
   keys: number;
   status: ForestStatus;
   currentQuestion: MCQ;
-  lastAnswer: "correct" | "wrong" | null;
+  stepCredits: number;
   lastAgentMessage: string;
-  bubbleVariant: ForestBubbleVariant;
-  bubbleKey: number;
-  awaitingMove: boolean;
-  pendingEvaluation: boolean;
-  questionReady: boolean;
+  awaitingEval: boolean;
   signingMode: boolean;
   error: string | null;
 
   startGame: () => void;
   submitAnswer: (letter: "A" | "B" | "C" | "D") => "correct" | "wrong";
-  advanceNode: () => void;
+  walkForward: () => boolean;
   finishWalk: () => void;
   celebrateWin: () => void;
   setAgentMessage: (text: string) => void;
+  onUserSpoke: () => void;
   setError: (e: string | null) => void;
   setStatus: (s: ForestStatus) => void;
   setSigningMode: (v: boolean) => void;
@@ -36,13 +32,9 @@ export const useForestStore = create<ForestState>((set, get) => ({
   keys: 0,
   status: "idle",
   currentQuestion: QUESTIONS[0],
-  lastAnswer: null,
-  lastAgentMessage: "Welcome, explorer! Press start to begin your forest adventure.",
-  bubbleVariant: "intro",
-  bubbleKey: 0,
-  awaitingMove: false,
-  pendingEvaluation: false,
-  questionReady: false,
+  stepCredits: 0,
+  lastAgentMessage: "",
+  awaitingEval: false,
   signingMode: false,
   error: null,
 
@@ -52,51 +44,28 @@ export const useForestStore = create<ForestState>((set, get) => ({
       keys: 0,
       status: "answering",
       currentQuestion: QUESTIONS[0],
-      lastAnswer: null,
-      lastAgentMessage: QUESTIONS[0].question,
-      bubbleVariant: "question",
-      bubbleKey: get().bubbleKey + 1,
-      awaitingMove: false,
+      stepCredits: 0,
+      lastAgentMessage: "",
+      awaitingEval: false,
       error: null,
     }),
 
   submitAnswer: (letter) => {
     const { currentQuestion, keys, status } = get();
-    if (status === "won") return "wrong";
-    const isCorrect = letter === currentQuestion.answer;
-    if (isCorrect) {
-      set({
-        keys: keys + 1,
-        lastAnswer: "correct",
-        awaitingMove: true,
-        bubbleVariant: "correct",
-        bubbleKey: get().bubbleKey + 1,
-        lastAgentMessage: "You earned a Knowledge Key! Click the arrow to continue.",
-      });
-    } else {
-      set({
-        lastAnswer: "wrong",
-        bubbleVariant: "wrong",
-        bubbleKey: get().bubbleKey + 1,
-        lastAgentMessage: `Not quite — ${currentQuestion.hint}`,
-      });
+    if (status !== "answering") return "wrong";
+    if (letter === currentQuestion.answer) {
+      set({ keys: keys + 1, stepCredits: 1, awaitingEval: false });
+      return "correct";
     }
-    return isCorrect ? "correct" : "wrong";
+    return "wrong";
   },
 
-  advanceNode: () => {
-    const { nodeIndex } = get();
+  walkForward: () => {
+    const { stepCredits, status, nodeIndex } = get();
+    if (status !== "answering" || stepCredits <= 0) return false;
     const next = nodeIndex + 1;
-    const isLast = next >= QUESTIONS.length;
-    set({
-      nodeIndex: next,
-      status: "walking",
-      awaitingMove: false,
-      lastAnswer: null,
-      lastAgentMessage: isLast ? "Almost there — the treasure awaits!" : "Walking to the next fork…",
-      bubbleVariant: "correct",
-      bubbleKey: get().bubbleKey + 1,
-    });
+    set({ nodeIndex: next, status: "walking", stepCredits: 0 });
+    return true;
   },
 
   finishWalk: () => {
@@ -105,85 +74,59 @@ export const useForestStore = create<ForestState>((set, get) => ({
     if (nodeIndex >= QUESTIONS.length) {
       get().celebrateWin();
     } else {
-      const q = QUESTIONS[nodeIndex];
       set({
         status: "answering",
-        currentQuestion: q,
-        lastAnswer: null,
-        awaitingMove: false,
-        bubbleVariant: "question",
-        bubbleKey: get().bubbleKey + 1,
-        lastAgentMessage: q.question,
+        currentQuestion: QUESTIONS[nodeIndex],
+        awaitingEval: false,
       });
     }
   },
 
   celebrateWin: () => {
     const { keys } = get();
-    let msg = "";
-    if (keys >= 5) msg = keys === 7 ? "You found ALL 7 Keys! The treasure is WIDE open! You're amazing!" : "Wonderful! You found most of the keys — the treasure opens!";
-    else if (keys >= 3) msg = "Great exploring! The treasure opens — here's a little review for next time.";
-    else msg = "You made it to the treasure! Every explorer learns along the way. Want to try again?";
-    set({
-      status: "won",
-      bubbleVariant: "victory",
-      lastAgentMessage: msg,
-      bubbleKey: get().bubbleKey + 1,
-    });
+    const msg =
+      keys === 7
+        ? "You found ALL 7 Keys! The treasure is WIDE open!"
+        : keys >= 5
+          ? "Wonderful! You found most of the keys — the treasure opens!"
+          : keys >= 3
+            ? "Great exploring! The treasure opens!"
+            : "You made it to the treasure! Every explorer learns along the way.";
+    set({ status: "won", lastAgentMessage: msg });
   },
 
   setAgentMessage: (text) => {
     const clean = text.replace(/<call:[^>]+>/g, "").replace(/\s+/g, " ").trim();
-    const lower = clean.toLowerCase();
-    const positive = POSITIVE_PATTERNS.some((re) => re.test(lower));
-    const negative = NEGATIVE_PATTERNS.some((re) => re.test(lower));
-    const hasChoices = /\bA:/i.test(clean) && /\bB:/i.test(clean);
-    const hasQuestion = clean.includes("?") || hasChoices;
-    set((s) => {
-      const base = {
-        lastAgentMessage: clean,
-        bubbleVariant: inferBubbleVariant(clean, s),
-        bubbleKey: s.bubbleKey + 1,
-      };
-      // Agent said something positive after user spoke → unlock the arrow
-      const shouldUnlock =
-        s.pendingEvaluation &&
-        positive &&
-        !negative &&
-        !s.awaitingMove &&
-        s.status !== "won" &&
-        s.status !== "walking";
-      if (shouldUnlock) {
-        return {
-          ...base,
-          keys: s.keys + 1,
-          awaitingMove: true,
-          lastAnswer: "correct",
-          pendingEvaluation: false,
-          bubbleVariant: "correct" as ForestBubbleVariant,
-        };
-      }
-      if (s.pendingEvaluation && negative) {
-        return { ...base, pendingEvaluation: false, lastAnswer: "wrong" };
-      }
-      // Agent asked a question → show MCQ choices
-      if (hasQuestion && s.status === "answering" && !s.awaitingMove) {
-        return { ...base, questionReady: true };
-      }
-      return base;
-    });
+    if (!clean) return;
+    const { status, stepCredits, keys, awaitingEval } = get();
+    // Credit already granted — ignore all agent speech until player walks
+    if (stepCredits > 0) return;
+    if (status === "walking") return;
+    if (
+      awaitingEval &&
+      status === "answering" &&
+      isPositive(clean) &&
+      !isNegative(clean)
+    ) {
+      set({ lastAgentMessage: clean, keys: keys + 1, stepCredits: 1, awaitingEval: false });
+      return;
+    }
+    if (awaitingEval && isNegative(clean)) {
+      set({ lastAgentMessage: clean, awaitingEval: false });
+      return;
+    }
+    set({ lastAgentMessage: clean });
   },
 
   onUserSpoke: () => {
-    const { status, questionReady } = get();
-    if (status === "answering" && questionReady) {
-      set({ pendingEvaluation: true });
+    const { status, stepCredits } = get();
+    if (status === "answering" && stepCredits === 0) {
+      set({ awaitingEval: true });
     }
   },
 
   setError: (e) => set({ error: e }),
   setStatus: (s) => set({ status: s }),
-
   setSigningMode: (v) => set({ signingMode: v }),
 
   reset: () =>
@@ -192,14 +135,22 @@ export const useForestStore = create<ForestState>((set, get) => ({
       keys: 0,
       status: "idle",
       currentQuestion: QUESTIONS[0],
-      lastAnswer: null,
-      lastAgentMessage: "Welcome back, explorer! Press start when you're ready.",
-      bubbleVariant: "intro",
-      bubbleKey: get().bubbleKey + 1,
-      awaitingMove: false,
-      pendingEvaluation: false,
-      questionReady: false,
+      stepCredits: 0,
+      lastAgentMessage: "",
+      awaitingEval: false,
       signingMode: false,
       error: null,
     }),
 }));
+
+const POSITIVE = [
+  /\bthat'?s right\b/, /\bcorrect\b/, /\byes\b/, /\bwell done\b/,
+  /\bgreat job\b/, /\bgood job\b/, /\bperfect\b/, /\bexcellent\b/,
+  /\byou got it\b/, /\bexactly\b/, /\bwonderful\b/, /\bamazing\b/,
+];
+const NEGATIVE = [
+  /\bnot quite\b/, /\balmost\b/, /\btry again\b/, /\blet'?s try\b/,
+  /\boops\b/, /\bgood try\b/, /\bnot exactly\b/,
+];
+function isPositive(t: string) { return POSITIVE.some((r) => r.test(t.toLowerCase())); }
+function isNegative(t: string) { return NEGATIVE.some((r) => r.test(t.toLowerCase())); }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useAnimations, useGLTF, Environment } from "@react-three/drei";
+import { useAnimations, useGLTF } from "@react-three/drei";
 import { Suspense, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
@@ -27,12 +27,13 @@ export default function CharacterPreview({
     <Canvas
       camera={{ position: cam.pos, fov: cam.fov }}
       style={{ width: "100%", height: "100%" }}
-      gl={{ alpha: true, antialias: true }}
+      dpr={[1, 1.75]}
+      gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
     >
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[3, 4, 5]} intensity={1} />
-      <directionalLight position={[-2, 3, -3]} intensity={0.3} />
-      <Environment preset="sunset" />
+      <ambientLight intensity={0.85} />
+      <hemisphereLight args={["#ffe8d8", "#6a5a8a", 0.55]} />
+      <directionalLight position={[3, 4, 5]} intensity={1.15} />
+      <directionalLight position={[-2, 3, -3]} intensity={0.35} />
       <Suspense fallback={null}>
         <Turntable hovered={hovered}>
           <CharacterModel slug={slug} />
