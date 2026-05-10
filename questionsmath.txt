@@ -1,0 +1,28 @@
+1) Easy (Arithmetic): (24 + 16) / 8 + 5
+   Step 1: 24 + 16 = 40
+   Step 2: 40 / 8 = 5
+   Step 3: 5 + 5 = 10
+   Answer: 10
+
+2) Medium (Basic Algebra): Solve for x: 3x + 7 = 22
+   Step 1: Subtract 7 from both sides: 3x = 22 - 7
+   Step 2: Simplify: 3x = 15
+   Step 3: Divide both sides by 3: x = 15 / 3
+   Step 4: Simplify: x = 5
+   Answer: x = 5
+
+3) Hard (Algebra / Quadratics): Solve for x: x^2 - 5x + 6 = 0
+   Step 1: Factor the quadratic: look for two numbers that multiply to 6 and add to -5
+   Step 2: Those numbers are -2 and -3
+   Step 3: Rewrite as (x - 2)(x - 3) = 0
+   Step 4: Set each factor to zero: x - 2 = 0 or x - 3 = 0
+   Step 5: Solve each: x = 2 or x = 3
+   Answer: x = 2 or x = 3
+
+4) Expert (Calculus): Find the derivative of f(x) = 3x^2 + 2x, then evaluate f'(4)
+   Step 1: Apply the power rule to 3x^2: derivative is 2 * 3x = 6x
+   Step 2: Apply the power rule to 2x: derivative is 2
+   Step 3: Combine: f'(x) = 6x + 2
+   Step 4: Substitute x = 4: f'(4) = 6(4) + 2
+   Step 5: Simplify: f'(4) = 24 + 2 = 26
+   Answer: f'(4) = 26
