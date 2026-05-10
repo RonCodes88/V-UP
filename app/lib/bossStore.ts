@@ -16,7 +16,31 @@ export type DamageEvent = {
 };
 
 const MAX_HP = 100;
-const DEFAULT_DAMAGE = 10;
+const DEFAULT_DAMAGE = 25;
+
+const BOSS_CORRECT_PATTERNS = [
+  /\bcorrect!/i,
+  /\bdirect hit\b/i,
+  /\bnailed it\b/i,
+  /\bbulls?-?eye\b/i,
+  /\bwell done\b/i,
+  /\bexcellent\b/i,
+  /\bperfect\b/i,
+  /\byou slash\b/i,
+  /\byou strike\b/i,
+  /\byou deal\b/i,
+  /\bexact\b/i,
+  /\byes!\b/i,
+];
+
+const BOSS_WRONG_PATTERNS = [
+  /wrong!/i,
+  /\bincorrect\b/i,
+  /the correct answer/i,
+  /\btry again\b/i,
+  /\bmiss!\b/i,
+  /\bno!\b/i,
+];
 
 type State = {
   playerHP: number;
@@ -158,7 +182,6 @@ export const useBossStore = create<State>((set, get) => ({
   setStatus: (s) => set({ status: s }),
   setAgentMessage: (text) => {
     const decoded = text
-      // Decode HTML entities for math symbols before any tag processing
       .replace(/&times;/gi, "×")
       .replace(/&divide;/gi, "÷")
       .replace(/&minus;/gi, "−")
@@ -168,25 +191,38 @@ export const useBossStore = create<State>((set, get) => ({
       .replace(/&amp;/gi, "&");
 
     const noTags = decoded
-      // Rescue arithmetic operators encoded as self-closing tags e.g. <×/> → ×
       .replace(/<([+\-×÷=±√²³¼½¾])\/>/g, "$1")
-      // Strip proper XML/HTML/SSML tags — only those starting with a letter or /
-      // This avoids treating math expressions like "x < 3" as tags
       .replace(/<\/?[a-zA-Z][^>]*>/g, " ")
-      // Fallback: strip any remaining angle-bracket sequences
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim();
 
-    // Parse HP values the agent writes in text (e.g. "Boss HP: 90/100")
-    const bossMatch = noTags.match(/boss[\s_]hp:\s*(\d+)/i);
-    const playerMatch = noTags.match(/player[\s_]hp:\s*(\d+)/i);
+    // Primary: parse HP from agent text. Tries two patterns per combatant:
+    //   1. "Boss HP …<anything>… 75"  (label before number)
+    //   2. "boss …<anything>… 75 HP"  (label after number)
+    const bossMatch =
+      noTags.match(/\bboss\s*:\s*(\d+)/i) ||
+      noTags.match(/boss[\s_]hp\b[^.!?\n]*?(\d+)/i) ||
+      noTags.match(/\bboss\b[^.!?\n]*?\b(\d+)\s*(?:\/\s*\d+\s*)?hp\b/i);
+    const playerMatch =
+      noTags.match(/\buser\s*:\s*(\d+)/i) ||
+      noTags.match(/(?:player|your)[\s_]hp\b[^.!?\n]*?(\d+)/i) ||
+      noTags.match(/\bplayer\b[^.!?\n]*?\b(\d+)\s*(?:\/\s*\d+\s*)?hp\b/i);
     const newBossHP = bossMatch ? parseInt(bossMatch[1], 10) : null;
     const newPlayerHP = playerMatch ? parseInt(playerMatch[1], 10) : null;
 
-    // Strip HP readouts and structured labels so they don't appear in the bubble
+    // Keyword fallback — computed independently so it can fire even when HP data
+    // was present but showed no change (e.g. agent announced stale HP value).
+    // Wrong takes priority: "Incorrect! The correct answer was X" would otherwise
+    // false-trigger the correct pattern since "correct" appears in the text.
+    const lower = noTags.toLowerCase();
+    const detectedWrong = BOSS_WRONG_PATTERNS.some((re) => re.test(lower));
+    const detectedCorrect = !detectedWrong && BOSS_CORRECT_PATTERNS.some((re) => re.test(lower));
+
+    // Strip any structured labels from the displayed bubble
     const display = noTags
-      .replace(/\b(?:boss|player)[\s_]hp:\s*\d+(?:\s*\/\s*\d+)?\s*\.?/gi, "")
+      .replace(/\b(?:boss|user)\s*:\s*\S+\s*/gi, "")
+      .replace(/\b(?:boss|player)[\s_]hp[:\s]+(?:is\s+(?:now\s+)?)?\d+(?:\s*\/\s*\d+)?\s*\.?/gi, "")
       .replace(/\bresult:\s*(?:correct|wrong)\s*\.?/gi, "")
       .replace(/\bdamage:\s*-?\d+\s*\.?/gi, "")
       .replace(/\bquestion:\s*/gi, "")
@@ -196,31 +232,54 @@ export const useBossStore = create<State>((set, get) => ({
     set((s) => {
       const newEvents = [...s.damageEvents];
       const updates: Partial<State> = {
-        lastAgentMessage: display || noTags,
+        lastAgentMessage: display || s.lastAgentMessage,
         bubbleKey: s.bubbleKey + 1,
       };
 
-      // Boss took damage
+      // Track whether HP parsing produced an actual change this turn.
+      let hpChanged = false;
+
       if (newBossHP !== null && newBossHP < s.bossHP) {
         updates.bossHP = newBossHP;
         updates.bossHitKey = s.bossHitKey + 1;
         updates.correctAnswers = s.correctAnswers + 1;
         updates.turn = s.turn + 1;
         newEvents.push({ id: Date.now(), target: "boss", amount: s.bossHP - newBossHP });
+        hpChanged = true;
+        if (newBossHP <= 0) updates.status = "victory";
       }
-
-      // Player took damage
       if (newPlayerHP !== null && newPlayerHP < s.playerHP) {
         updates.playerHP = newPlayerHP;
         updates.playerHitKey = s.playerHitKey + 1;
         updates.turn = (updates.turn ?? s.turn) + 1;
         newEvents.push({ id: Date.now() + 1, target: "player", amount: s.playerHP - newPlayerHP });
+        hpChanged = true;
+        if (newPlayerHP <= 0) updates.status = "defeat";
+      }
+
+      // Keyword fallback: only when HP parsing found no actual damage change AND
+      // the player has spoken at least once (prevents welcome-message false positives).
+      const playerHasSpoken = s.transcript.some((m) => m.role === "user");
+      if (!hpChanged && s.status === "battling" && playerHasSpoken) {
+        if (detectedWrong) {
+          const newPHP = Math.max(0, s.playerHP - DEFAULT_DAMAGE);
+          updates.playerHP = newPHP;
+          updates.playerHitKey = s.playerHitKey + 1;
+          updates.turn = s.turn + 1;
+          newEvents.push({ id: Date.now(), target: "player", amount: DEFAULT_DAMAGE });
+          if (newPHP <= 0) updates.status = "defeat";
+        } else if (detectedCorrect) {
+          const newBHP = Math.max(0, s.bossHP - DEFAULT_DAMAGE);
+          updates.bossHP = newBHP;
+          updates.bossHitKey = s.bossHitKey + 1;
+          updates.correctAnswers = s.correctAnswers + 1;
+          updates.turn = s.turn + 1;
+          newEvents.push({ id: Date.now(), target: "boss", amount: DEFAULT_DAMAGE });
+          if (newBHP <= 0) updates.status = "victory";
+        }
       }
 
       if (newEvents.length > s.damageEvents.length) updates.damageEvents = newEvents;
-      if (newBossHP !== null && newBossHP <= 0) updates.status = "victory";
-      if (newPlayerHP !== null && newPlayerHP <= 0) updates.status = "defeat";
-
       return updates;
     });
   },
