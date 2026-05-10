@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useConversation } from "@elevenlabs/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -7,6 +8,10 @@ import { useGameStore } from "@/app/lib/gameStore";
 import { useHubStore } from "@/app/lib/hubStore";
 import { buildFirstMessage, buildSystemPrompt, getPersona } from "@/app/lib/agentPersona";
 import type { Direction } from "@/app/lib/maze";
+
+const Trophy3D = dynamic(() => import("./Trophy3D"), { ssr: false });
+
+const cinzel = { fontFamily: "var(--font-cinzel), serif" } as const;
 
 export default function HUD() {
   const status = useGameStore((s) => s.status);
@@ -35,8 +40,6 @@ export default function HUD() {
 
   const [starting, setStarting] = useState(false);
 
-  // Auto-mute on first connect — user must explicitly click "Start Listening"
-  // before each answer. Keeps background noise from the demo room out.
   const wasConnected = useRef(false);
   useEffect(() => {
     if (connected && !wasConnected.current) {
@@ -47,8 +50,6 @@ export default function HUD() {
     }
   }, [connected, conv]);
 
-  // Auto-mute the moment a step is granted (correct answer) so the walking
-  // animation isn't picked up as an answer to a not-yet-asked question.
   const prevCredits = useRef(stepCredits);
   useEffect(() => {
     if (prevCredits.current === 0 && stepCredits > 0 && connected) {
@@ -57,7 +58,6 @@ export default function HUD() {
     prevCredits.current = stepCredits;
   }, [stepCredits, connected, conv]);
 
-  // Defensive: also mute during the walk animation.
   useEffect(() => {
     if (status === "moving" && connected && !muted) {
       conv.setMuted(true);
@@ -99,14 +99,8 @@ export default function HUD() {
   };
 
   const dist = Math.abs(pos.x - goal.x) + Math.abs(pos.y - goal.y);
-
-  // Live perception, used to disable D-pad arrows that face walls.
   const p = perception();
-
   const canMove = stepCredits > 0 && status !== "moving" && status !== "won";
-
-  // Center card only shows when the agent has fresh narration to deliver —
-  // hidden during the answer→walk→next-question pause so the player can think.
   const showCard = bubbleVisible && !canMove && status !== "moving";
 
   const statusLabel =
@@ -127,78 +121,80 @@ export default function HUD() {
                   : "Listening";
 
   const variantTone: Record<typeof bubbleVariant, string> = {
-    intro: "from-indigo-500/30 to-violet-500/30 border-indigo-300/40",
-    question: "from-indigo-500/30 to-violet-500/30 border-indigo-300/40",
-    encouragement: "from-amber-500/30 to-orange-500/30 border-amber-300/40",
-    celebration: "from-emerald-500/30 to-teal-500/30 border-emerald-300/40",
-    victory: "from-yellow-400/40 to-amber-500/40 border-yellow-300/60",
+    intro: "border-indigo-500/30",
+    question: "border-amber-500/30",
+    encouragement: "border-amber-500/40",
+    celebration: "border-amber-400/50",
+    victory: "border-amber-400/60",
   };
 
   return (
     <>
       <div className="pointer-events-none absolute inset-0 flex flex-col">
-        <header className="pointer-events-auto flex items-start justify-between gap-3 p-5">
-          <div className="flex items-start gap-3">
-            <button
-              onClick={() => {
-                if (connected) conv.endSession();
-                router.push("/");
-              }}
-              className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white shadow-lg ring-1 ring-white/20 backdrop-blur-md transition hover:bg-white/20"
-              title="Back to hub"
+        {/* Header */}
+        <header className="pointer-events-auto flex items-center justify-between gap-3 border-b border-white/8 bg-black/70 px-6 py-3 backdrop-blur-sm">
+          <button
+            onClick={() => {
+              if (connected) conv.endSession();
+              router.push("/");
+            }}
+            className="border border-white/20 px-4 py-1.5 text-[10px] uppercase tracking-[0.25em] text-white/55 transition hover:border-white/40 hover:text-white/90"
+            style={cinzel}
+          >
+            ← Hub
+          </button>
+
+          <div className="flex items-center gap-3">
+            <span
+              className="text-sm font-bold uppercase tracking-[0.2em] text-white"
+              style={cinzel}
             >
-              ← Hub
-            </button>
-            <div>
-              <div className="text-lg font-bold tracking-tight text-white drop-shadow-lg">
-                {persona.emoji} Maze Quest
-              </div>
-              <div className="text-xs text-white/70">
-                Science question → earn a step → pick a direction
-              </div>
-            </div>
+              {persona.emoji} Maze Quest
+            </span>
           </div>
+
           <div className="flex items-center gap-2">
-            <Pill>📍 {dist} step{dist === 1 ? "" : "s"} to go</Pill>
-            <Pill highlight={canMove} pulse={canMove}>
-              🎟️ {stepCredits} step{stepCredits === 1 ? "" : "s"}
-            </Pill>
-            <Pill highlight={connected && !muted}>
+            <Tag highlight={canMove} pulse={canMove}>
+              🎟 {stepCredits} step{stepCredits === 1 ? "" : "s"}
+            </Tag>
+            <Tag>📍 {dist} to go</Tag>
+            <Tag highlight={connected && !muted}>
               {connected && (
                 <span
                   className={`mr-1 inline-block h-2 w-2 rounded-full ${
                     muted
                       ? "bg-rose-400"
                       : isSpeaking
-                        ? "bg-emerald-400 listening-glow"
-                        : "bg-emerald-300"
+                        ? "bg-amber-400 listening-glow"
+                        : "bg-amber-300"
                   }`}
                 />
               )}
               {statusLabel}
-            </Pill>
+            </Tag>
           </div>
         </header>
 
         <div className="flex-1" />
 
-        {/* Center modal-style card */}
+        {/* Center agent card */}
         {status !== "idle" && status !== "won" && showCard && (
-          <div
-            className="pointer-events-none absolute left-1/2 top-1/2 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 px-6 transition-opacity duration-300"
-          >
+          <div className="pointer-events-none absolute left-1/2 top-1/2 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 px-6">
             <div
               key={lastAgentMessage}
-              className={`center-card pointer-events-auto rounded-3xl border-2 bg-gradient-to-br p-6 shadow-2xl backdrop-blur-md ${variantTone[bubbleVariant]}`}
+              className={`center-card pointer-events-auto border bg-black/70 p-6 shadow-2xl backdrop-blur-md ${variantTone[bubbleVariant]}`}
             >
-              <div className="text-xs font-semibold uppercase tracking-widest text-white/70">
+              <div
+                className="text-[9px] font-semibold uppercase tracking-[0.3em] text-amber-400/70"
+                style={cinzel}
+              >
                 {persona.name}
               </div>
-              <div className="mt-1 text-2xl font-semibold leading-snug text-white drop-shadow">
+              <div className="mt-2 text-2xl font-semibold leading-snug text-white drop-shadow">
                 {lastAgentMessage}
               </div>
               {bubbleVariant === "encouragement" && (
-                <div className="mt-3 text-sm text-white/80">
+                <div className="mt-3 text-sm text-white/60">
                   💛 Take your time — I&apos;m right here with you.
                 </div>
               )}
@@ -206,11 +202,12 @@ export default function HUD() {
                 <div className="mt-5 flex justify-center">
                   <button
                     onClick={() => conv.setMuted(!muted)}
-                    className={`rounded-full px-7 py-3 text-base font-bold shadow-xl ring-2 transition ${
+                    className={`border px-7 py-3 text-[11px] font-bold uppercase tracking-[0.3em] transition ${
                       muted
-                        ? "bg-emerald-400 text-emerald-950 ring-emerald-200 hover:scale-105 hover:bg-emerald-300 listening-glow"
-                        : "bg-rose-500 text-rose-50 ring-rose-300 hover:bg-rose-400"
+                        ? "border-amber-500 text-amber-400 hover:bg-amber-500/10 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+                        : "border-rose-500/50 text-rose-400/70 hover:border-rose-400 hover:text-rose-300"
                     }`}
+                    style={cinzel}
                   >
                     {muted ? "🎤 Start Listening" : "🔇 Stop Listening"}
                   </button>
@@ -220,27 +217,42 @@ export default function HUD() {
           </div>
         )}
 
-        {/* Idle/start splash */}
+        {/* Idle splash */}
         {status === "idle" && (
           <div className="pointer-events-auto absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-6 text-center">
-            <div className="center-card rounded-3xl border-2 border-white/20 bg-gradient-to-br from-indigo-600/40 to-purple-700/40 p-7 shadow-2xl backdrop-blur-md">
-              <div className="text-4xl">{persona.emoji}🌟</div>
-              <div className="mt-2 text-2xl font-bold text-white">
-                Welcome, friend!
+            <div className="center-card border border-amber-500/30 bg-black/80 p-8 shadow-2xl backdrop-blur-md">
+              <div className="text-4xl">{persona.emoji}</div>
+              <div
+                className="mt-4 text-2xl font-black uppercase tracking-[0.15em] text-white"
+                style={{
+                  ...cinzel,
+                  textShadow: "0 0 60px rgba(200,164,60,0.2), 0 2px 4px rgba(0,0,0,0.8)",
+                }}
+              >
+                Maze Quest
               </div>
-              <div className="mt-2 text-sm text-white/85">
-                Answer a science question → earn a step → pick an arrow to walk
-                your buddy toward the glowing portal.
-              </div>
+              <p
+                className="mt-2 text-[11px] uppercase tracking-[0.2em] text-white/40"
+                style={cinzel}
+              >
+                Science questions unlock your path
+              </p>
+              <p className="mt-4 text-sm leading-relaxed text-white/70">
+                Answer a science question → earn a step → pick an arrow to guide your buddy toward the glowing portal.
+              </p>
               <button
                 onClick={start}
                 disabled={starting}
-                className="mt-5 rounded-full bg-emerald-400 px-7 py-3 text-base font-bold text-emerald-950 shadow-2xl shadow-emerald-500/40 transition hover:scale-105 hover:bg-emerald-300 disabled:opacity-60 disabled:hover:scale-100"
+                className="mt-6 border border-amber-500 px-10 py-3 text-[11px] font-bold uppercase tracking-[0.3em] text-amber-400 transition hover:bg-amber-500/10 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-50"
+                style={cinzel}
               >
-                {starting ? "Connecting…" : "▶ Start Adventure"}
+                {starting ? "Connecting…" : "Start Adventure"}
               </button>
               {error && (
-                <div className="mt-3 rounded-xl border border-rose-400/40 bg-rose-500/10 p-2 text-xs text-rose-200">
+                <div
+                  className="mt-3 border border-rose-400/40 bg-rose-500/10 p-2 text-xs text-rose-200"
+                  style={cinzel}
+                >
                   {error}
                 </div>
               )}
@@ -248,7 +260,7 @@ export default function HUD() {
           </div>
         )}
 
-        {/* Bottom row — D-pad on right, controls in middle, text input on left */}
+        {/* Bottom controls */}
         {status !== "idle" && status !== "won" && (
           <div className="pointer-events-auto absolute bottom-0 left-0 right-0 flex items-end justify-between gap-4 p-5">
             <div className="flex flex-col gap-2">
@@ -259,13 +271,15 @@ export default function HUD() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={stop}
-                  className="rounded-full bg-rose-500/90 px-5 py-2 text-sm font-semibold text-rose-950 shadow-xl transition hover:bg-rose-400"
+                  className="border border-rose-500/40 px-5 py-2 text-[10px] uppercase tracking-[0.2em] text-rose-400/70 transition hover:border-rose-400 hover:text-rose-300"
+                  style={cinzel}
                 >
                   End
                 </button>
                 <button
                   onClick={() => reset()}
-                  className="rounded-full bg-white/10 px-5 py-2 text-sm font-semibold text-white shadow-xl ring-1 ring-white/20 transition hover:bg-white/20"
+                  className="border border-white/20 px-5 py-2 text-[10px] uppercase tracking-[0.2em] text-white/55 transition hover:border-white/40 hover:text-white/90"
+                  style={cinzel}
                 >
                   Restart
                 </button>
@@ -286,27 +300,44 @@ export default function HUD() {
         )}
 
         {error && status !== "idle" && status !== "won" && (
-          <div className="pointer-events-auto absolute left-1/2 top-20 max-w-md -translate-x-1/2 rounded-xl border border-rose-400/40 bg-rose-500/10 p-2 text-center text-xs text-rose-200">
+          <div
+            className="pointer-events-auto absolute left-1/2 top-20 max-w-md -translate-x-1/2 border border-rose-400/40 bg-rose-500/10 p-2 text-center text-xs text-rose-200 backdrop-blur-md"
+            style={cinzel}
+          >
             {error}
           </div>
         )}
       </div>
 
+      {/* Victory screen */}
       {status === "won" && (
         <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
-          <div className="center-card rounded-3xl border-2 border-yellow-300/60 bg-gradient-to-br from-yellow-400/30 to-amber-500/30 px-12 py-8 text-center shadow-2xl backdrop-blur-md">
-            <div className="text-6xl">🏆</div>
-            <div className="mt-2 text-4xl font-extrabold text-yellow-200">
-              You did it!
+          <div className="center-card border border-amber-500/40 bg-black/80 px-12 py-10 text-center shadow-2xl backdrop-blur-md">
+            <div className="mx-auto flex h-52 w-52 items-center justify-center">
+              <Trophy3D />
             </div>
-            <div className="mt-2 text-base text-white/90">
-              Your buddy made it home — wonderful work, friend.
+            <div
+              className="mt-4 text-4xl font-black uppercase tracking-[0.15em] text-amber-300"
+              style={{
+                ...cinzel,
+                textShadow: "0 0 60px rgba(200,164,60,0.3)",
+              }}
+            >
+              You Did It!
             </div>
+            <p
+              className="mt-3 text-[11px] uppercase tracking-[0.2em] text-white/40"
+              style={cinzel}
+            >
+              Your buddy made it home
+            </p>
+            <p className="mt-3 text-sm text-white/80">Wonderful work, friend.</p>
             <button
               onClick={() => reset()}
-              className="mt-5 rounded-full bg-emerald-400 px-6 py-2.5 text-sm font-bold text-emerald-950 shadow-xl transition hover:bg-emerald-300"
+              className="mt-6 border border-amber-500 px-8 py-3 text-[11px] font-bold uppercase tracking-[0.3em] text-amber-400 transition hover:bg-amber-500/10"
+              style={cinzel}
             >
-              Play again
+              Play Again
             </button>
           </div>
         </div>
@@ -315,7 +346,7 @@ export default function HUD() {
   );
 }
 
-function Pill({
+function Tag({
   children,
   highlight,
   pulse,
@@ -326,11 +357,12 @@ function Pill({
 }) {
   return (
     <div
-      className={`rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md ring-1 ${
+      className={`border px-3 py-1 text-[10px] uppercase tracking-[0.15em] backdrop-blur-md ${
         highlight
-          ? "bg-emerald-400/20 text-emerald-100 ring-emerald-400/40"
-          : "bg-white/10 text-white ring-white/20"
+          ? "border-amber-500/50 bg-black/40 text-amber-400"
+          : "border-white/15 bg-black/40 text-white/50"
       } ${pulse ? "listening-glow" : ""}`}
+      style={{ fontFamily: "var(--font-cinzel), serif" }}
     >
       {children}
     </div>
@@ -347,17 +379,19 @@ function DPad({
   onMove: (dir: Direction) => void;
 }) {
   const btnBase =
-    "flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-black shadow-xl ring-2 transition active:scale-90";
+    "flex h-14 w-14 items-center justify-center border text-2xl font-black shadow-xl transition active:scale-90";
   const enabled =
-    "bg-emerald-400 text-emerald-950 ring-emerald-200 hover:scale-110 hover:bg-emerald-300";
-  const disabled = "bg-white/5 text-white/30 ring-white/10 cursor-not-allowed";
-  const cls = (wall: boolean) =>
-    `${btnBase} ${canMove && !wall ? enabled : disabled}`;
+    "border-amber-500/60 bg-amber-500/10 text-amber-300 hover:border-amber-400 hover:bg-amber-500/20";
+  const disabled = "border-white/8 bg-white/3 text-white/20 cursor-not-allowed";
+  const cls = (wall: boolean) => `${btnBase} ${canMove && !wall ? enabled : disabled}`;
 
   return (
-    <div className="flex flex-col items-center gap-2 rounded-3xl border-2 border-white/10 bg-black/30 p-3 shadow-2xl backdrop-blur-md">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">
-        {canMove ? "Pick a direction!" : "Answer to unlock"}
+    <div className="flex flex-col items-center gap-2 border border-white/10 bg-black/50 p-3 shadow-2xl backdrop-blur-md">
+      <div
+        className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40"
+        style={{ fontFamily: "var(--font-cinzel), serif" }}
+      >
+        {canMove ? "Pick a direction" : "Answer to unlock"}
       </div>
       <div className="grid grid-cols-3 gap-1.5">
         <div />
@@ -416,21 +450,27 @@ function TypeAnswer({
         onSubmit(t);
         setText("");
       }}
-      className="flex items-center gap-2 rounded-2xl border border-white/15 bg-black/40 p-1 pl-3 backdrop-blur-md"
+      className="flex items-center gap-2 border border-white/15 bg-black/40 p-1 pl-3 backdrop-blur-md"
     >
-      <span className="text-xs font-semibold text-white/60">Type:</span>
+      <span
+        className="text-[10px] uppercase tracking-[0.2em] text-white/40"
+        style={{ fontFamily: "var(--font-cinzel), serif" }}
+      >
+        Type
+      </span>
       <input
         type="text"
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Type your answer if it's loud…"
         disabled={disabled}
-        className="w-56 bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
+        className="w-56 bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none"
       />
       <button
         type="submit"
         disabled={disabled || !text.trim()}
-        className="rounded-full bg-indigo-400 px-3 py-1 text-xs font-bold text-indigo-950 shadow-md transition hover:bg-indigo-300 disabled:opacity-40"
+        className="border border-amber-500/60 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-amber-400 transition hover:bg-amber-500/10 disabled:opacity-40"
+        style={{ fontFamily: "var(--font-cinzel), serif" }}
       >
         Send
       </button>
