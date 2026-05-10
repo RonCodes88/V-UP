@@ -43,7 +43,7 @@ async def signed_url(game: str = Query(default="maze")):
 @app.get("/api/signed-url/spell")
 async def signed_url_spell():
     api_key = os.getenv("ELEVENLABS_API_KEY")
-    agent_id = os.getenv("ELEVNLABS_AGENT_SPELL_ID")
+    agent_id = os.getenv("ELEVENLABS_AGENT_SPELL_ID")
     if not api_key or not agent_id:
-        raise HTTPException(status_code=500, detail="Missing ELEVENLABS_API_KEY or ELEVNLABS_AGENT_SPELL_ID")
+        raise HTTPException(status_code=500, detail="Missing ELEVENLABS_API_KEY or ELEVENLABS_AGENT_SPELL_ID")
     return {"signedUrl": await _mint_signed_url(api_key, agent_id)}

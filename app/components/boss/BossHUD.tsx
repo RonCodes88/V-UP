@@ -44,41 +44,31 @@ export default function BossHUD() {
   const reset = useBossStore((s) => s.reset);
 
   const [starting, setStarting] = useState(false);
-  const [bossAnimClass, setBossAnimClass] = useState("boss-float");
-  const [playerAnimClass, setPlayerAnimClass] = useState("");
   const [screenFlash, setScreenFlash] = useState(false);
   const [floatNums, setFloatNums] = useState<FloatNum[]>([]);
 
   useEffect(() => {
     if (bossHitKey === 0) return;
-    setBossAnimClass("boss-hit");
     const id = Date.now();
     setFloatNums((prev) => [...prev, { id, text: "−10", side: "boss" }]);
-    const resume = setTimeout(() => setBossAnimClass("boss-float"), 650);
     const remove = setTimeout(
       () => setFloatNums((prev) => prev.filter((n) => n.id !== id)),
       1100,
     );
-    return () => {
-      clearTimeout(resume);
-      clearTimeout(remove);
-    };
+    return () => clearTimeout(remove);
   }, [bossHitKey]);
 
   useEffect(() => {
     if (playerHitKey === 0) return;
-    setPlayerAnimClass("player-hit");
     setScreenFlash(true);
     const id = Date.now() + 1;
     setFloatNums((prev) => [...prev, { id, text: "−10", side: "player" }]);
-    const resume = setTimeout(() => setPlayerAnimClass(""), 550);
     const flash = setTimeout(() => setScreenFlash(false), 650);
     const remove = setTimeout(
       () => setFloatNums((prev) => prev.filter((n) => n.id !== id)),
       1100,
     );
     return () => {
-      clearTimeout(resume);
       clearTimeout(flash);
       clearTimeout(remove);
     };
@@ -114,8 +104,6 @@ export default function BossHUD() {
 
   const bossHPPct = (bossHP / MAX_HP) * 100;
   const playerHPPct = (playerHP / MAX_HP) * 100;
-
-  const bossPhaseEmoji = bossHP > 60 ? "👹" : bossHP > 25 ? "💀" : "🔥";
 
   const bossHPColor =
     bossHPPct > 50
@@ -247,46 +235,47 @@ export default function BossHUD() {
           </div>
         )}
 
-        {/* Arena */}
-        <div className="relative flex flex-1 flex-col items-center justify-center gap-4">
+        {/* Arena — 3D scene renders behind. We only overlay damage numbers + agent bubble. */}
+        <div className="relative flex flex-1 flex-col items-stretch justify-between gap-4 px-6 py-2">
           {status === "battling" && (
             <>
-              {/* Boss character */}
-              <div className="relative flex flex-col items-center">
-                {/* Floating damage numbers above boss */}
-                <div className="relative h-8 w-full">
-                  {floatNums
-                    .filter((n) => n.side === "boss")
-                    .map((n) => (
-                      <div
-                        key={n.id}
-                        className="damage-float absolute left-1/2 -translate-x-1/2 text-3xl font-black text-rose-300 drop-shadow-lg"
-                        style={{ textShadow: "0 0 12px rgba(251,113,133,0.9)" }}
-                      >
-                        {n.text}
-                      </div>
-                    ))}
-                </div>
-
-                <div
-                  className={`select-none leading-none ${bossAnimClass}`}
-                  style={{
-                    fontSize: "clamp(80px, 15vw, 130px)",
-                    textShadow: "0 0 50px rgba(239,68,68,0.7), 0 0 20px rgba(239,68,68,0.4)",
-                    filter: "drop-shadow(0 0 12px rgba(239,68,68,0.5))",
-                  }}
-                >
-                  {bossPhaseEmoji}
-                </div>
-                <div className="mt-1 text-xs font-black uppercase tracking-widest text-rose-400/90">
+              {/* Boss damage numbers — anchored top-center over the 3D boss */}
+              <div className="pointer-events-none relative mx-auto h-12 w-72">
+                {floatNums
+                  .filter((n) => n.side === "boss")
+                  .map((n) => (
+                    <div
+                      key={n.id}
+                      className="damage-float absolute left-1/2 -translate-x-1/2 text-4xl font-black text-rose-200 drop-shadow-lg"
+                      style={{ textShadow: "0 0 14px rgba(251,113,133,1)" }}
+                    >
+                      {n.text}
+                    </div>
+                  ))}
+                <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-2 rounded-full bg-rose-950/60 px-3 py-0.5 text-[10px] font-black uppercase tracking-widest text-rose-300/90 ring-1 ring-rose-500/40 backdrop-blur-md">
                   INFERNAL TITAN
                 </div>
               </div>
 
-              {/* Agent speech bubble */}
+              {/* Player damage numbers — anchored bottom-center over the 3D player */}
+              <div className="pointer-events-none relative mx-auto h-10 w-60">
+                {floatNums
+                  .filter((n) => n.side === "player")
+                  .map((n) => (
+                    <div
+                      key={n.id}
+                      className="damage-float absolute left-1/2 -translate-x-1/2 text-3xl font-black text-red-300 drop-shadow-lg"
+                      style={{ textShadow: "0 0 12px rgba(248,113,113,1)" }}
+                    >
+                      {n.text}
+                    </div>
+                  ))}
+              </div>
+
+              {/* Agent speech bubble — pinned along the bottom over the 3D scene */}
               <div
                 key={bubbleKey}
-                className="center-card mx-6 w-full max-w-lg rounded-2xl border border-rose-500/30 bg-gradient-to-br from-rose-950/60 to-slate-900/60 p-4 shadow-2xl backdrop-blur-md"
+                className="center-card pointer-events-none mx-auto mb-2 w-full max-w-xl rounded-2xl border border-rose-500/30 bg-gradient-to-br from-rose-950/70 to-slate-900/70 p-4 shadow-2xl backdrop-blur-md"
               >
                 <div className="text-xs font-bold uppercase tracking-widest text-rose-400/80">
                   Game Master
@@ -294,31 +283,6 @@ export default function BossHUD() {
                 <div className="mt-1 text-lg font-semibold leading-snug text-white">
                   {lastAgentMessage}
                 </div>
-              </div>
-
-              {/* Player character */}
-              <div className="flex flex-col items-center gap-1">
-                {/* Floating damage numbers above player */}
-                <div className="relative h-6 w-full">
-                  {floatNums
-                    .filter((n) => n.side === "player")
-                    .map((n) => (
-                      <div
-                        key={n.id}
-                        className="damage-float absolute left-1/2 -translate-x-1/2 text-2xl font-black text-red-300 drop-shadow-lg"
-                        style={{ textShadow: "0 0 10px rgba(248,113,113,0.9)" }}
-                      >
-                        {n.text}
-                      </div>
-                    ))}
-                </div>
-                <div
-                  className={`select-none ${playerAnimClass}`}
-                  style={{ fontSize: "52px", filter: "drop-shadow(0 0 8px rgba(99,102,241,0.4))" }}
-                >
-                  {playerEmoji}
-                </div>
-                <div className="text-xs text-white/50">Your warrior</div>
               </div>
             </>
           )}
@@ -349,8 +313,8 @@ export default function BossHUD() {
 
       {/* Idle splash */}
       {status === "idle" && (
-        <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
-          <div className="center-card mx-6 w-full max-w-md rounded-3xl border-2 border-rose-500/40 bg-gradient-to-br from-rose-950/70 to-slate-900/70 p-8 text-center shadow-2xl backdrop-blur-md">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="center-card pointer-events-auto mx-6 w-full max-w-md rounded-3xl border-2 border-rose-500/40 bg-gradient-to-br from-rose-950/70 to-slate-900/70 p-8 text-center shadow-2xl backdrop-blur-md">
             <div className="select-none text-7xl" style={{ textShadow: "0 0 40px rgba(239,68,68,0.7)" }}>
               👹⚔️{playerEmoji}
             </div>
@@ -380,8 +344,8 @@ export default function BossHUD() {
 
       {/* Victory screen */}
       {status === "victory" && (
-        <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
-          <div className="center-card mx-6 w-full max-w-lg rounded-3xl border-2 border-yellow-300/60 bg-gradient-to-br from-yellow-400/30 to-amber-600/30 px-12 py-10 text-center shadow-2xl backdrop-blur-md">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="center-card pointer-events-auto mx-6 w-full max-w-lg rounded-3xl border-2 border-yellow-300/60 bg-gradient-to-br from-yellow-400/30 to-amber-600/30 px-12 py-10 text-center shadow-2xl backdrop-blur-md">
             <div className="select-none text-6xl">🏆⚔️✨</div>
             <div className="mt-3 text-4xl font-extrabold text-yellow-200 drop-shadow-lg">
               Victory!
@@ -406,8 +370,8 @@ export default function BossHUD() {
 
       {/* Defeat screen */}
       {status === "defeat" && (
-        <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
-          <div className="center-card mx-6 w-full max-w-lg rounded-3xl border-2 border-rose-600/60 bg-gradient-to-br from-rose-950/70 to-slate-900/70 px-12 py-10 text-center shadow-2xl backdrop-blur-md">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="center-card pointer-events-auto mx-6 w-full max-w-lg rounded-3xl border-2 border-rose-600/60 bg-gradient-to-br from-rose-950/70 to-slate-900/70 px-12 py-10 text-center shadow-2xl backdrop-blur-md">
             <div className="select-none text-6xl">💀⚔️👹</div>
             <div className="mt-3 text-4xl font-extrabold text-rose-200 drop-shadow-lg">
               Defeated!
