@@ -125,7 +125,7 @@ export default function Home() {
           className="mt-5 max-w-2xl text-base font-normal uppercase tracking-[0.18em] leading-relaxed text-white/55"
           style={{ fontFamily: "var(--font-cinzel), serif" }}
         >
-          Voice-powered learning worlds for social good—supporting neurodivergent kids (ADHD, autism, dyslexia), kids with limb differences, and Deaf ASL learners. Talk to your buddy, play, and grow.
+          Conversational-based learning games for neurodivergent kids, kids with limb differences, and Deaf ASL learners.
         </p>
 
         {/* CTA buttons */}

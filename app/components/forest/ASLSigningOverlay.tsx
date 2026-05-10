@@ -3,18 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
 import { useForestStore } from "@/app/lib/forestStore";
+import { forestAnswerMatches } from "@/app/lib/forestQuestions";
 
 export default function ASLSigningOverlay() {
   const signingMode = useForestStore((s) => s.signingMode);
-  const stepCredits = useForestStore((s) => s.stepCredits);
+  const setSigningMode = useForestStore((s) => s.setSigningMode);
+  const status = useForestStore((s) => s.status);
   const nodeIndex = useForestStore((s) => s.nodeIndex);
   const conv = useConversation();
 
-  useEffect(() => {
-    if (conv.status !== "connected" || !signingMode) return;
-    conv.setMuted(stepCredits > 0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stepCredits, signingMode, conv.status]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -138,17 +135,43 @@ export default function ASLSigningOverlay() {
   }
 
   function handleSubmitWord() {
-    if (!wordBuffer) return;
-    useForestStore.getState().onUserSpoke();
-    conv.sendUserMessage(`The answer is ${wordBuffer}`);
+    const answer = wordBuffer || detectedLetter;
+    if (!answer) return;
+    const store = useForestStore.getState();
+    const q = store.currentQuestion;
+    const matches = forestAnswerMatches(q, answer);
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      console.log("[Forest ASL] submit", {
+        raw: answer,
+        normalized: answer.trim().toUpperCase().replace(/\s+/g, " ").trim(),
+        expectedLetter: q.answer,
+        expectedChoice: q.choices[q.answer],
+        matches,
+        status: store.status,
+        stepCredits: store.stepCredits,
+      });
+    }
+    if (
+      store.status === "answering" &&
+      store.stepCredits === 0 &&
+      matches
+    ) {
+      store.grantKey();
+      setSigningMode(false);
+    } else {
+      store.checkAnswer(answer);
+    }
+    conv.sendUserMessage(`The answer is ${answer}`);
     setWordBuffer("");
+    setDetectedLetter("");
+    setConfidence(0);
   }
 
   function handleBackspace() {
     setWordBuffer((prev) => prev.slice(0, -1));
   }
 
-  if (!signingMode) return null;
+  if (!signingMode || status !== "answering") return null;
 
   return (
     <div className="pointer-events-auto absolute bottom-32 right-5 flex flex-col items-end gap-2">
@@ -183,12 +206,25 @@ export default function ASLSigningOverlay() {
       {/* Hidden canvas for frame capture */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Word buffer display */}
-      {wordBuffer && (
-        <div className="rounded-xl border border-emerald-400/30 bg-black/60 px-3 py-1 font-mono text-sm text-white/90 backdrop-blur-sm">
-          Spelling: <span className="font-bold text-emerald-300">{wordBuffer}</span>
+      {/* Word buffer — large input-style display */}
+      <div
+        className="min-h-[4.5rem] w-full max-w-md rounded-2xl border-2 border-emerald-400/40 bg-black/70 px-5 py-4 shadow-inner backdrop-blur-sm"
+        aria-label="Your spelled answer"
+      >
+        <div
+          className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400/80"
+          style={{ fontFamily: "var(--font-cinzel), serif" }}
+        >
+          Your answer
         </div>
-      )}
+        <div className="mt-2 min-h-[2.75rem] font-mono text-3xl font-bold leading-tight tracking-[0.08em] text-emerald-200 sm:text-4xl">
+          {wordBuffer ? (
+            <span className="break-all">{wordBuffer}</span>
+          ) : (
+            <span className="text-white/25">—</span>
+          )}
+        </div>
+      </div>
 
       {/* Debug toggle + panel */}
       <button
@@ -238,7 +274,7 @@ export default function ASLSigningOverlay() {
         </button>
         <button
           onClick={handleSubmitWord}
-          disabled={!wordBuffer}
+          disabled={!wordBuffer && !detectedLetter}
           className="border border-amber-500 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-400 transition hover:bg-amber-500/20 hover:shadow-[0_0_12px_rgba(245,158,11,0.2)] disabled:opacity-30"
           style={{ fontFamily: "var(--font-cinzel), serif" }}
         >
