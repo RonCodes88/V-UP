@@ -1,6 +1,25 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+
+function SpinArrow({ className }: { className?: string }) {
+  const [spinning, setSpinning] = useState(false);
+  return (
+    <span
+      className={className}
+      style={{
+        display: "inline-block",
+        transformOrigin: "center",
+        animation: spinning ? "spin360 0.55s ease-in-out" : "none",
+      }}
+      onMouseEnter={() => setSpinning(true)}
+      onAnimationEnd={() => setSpinning(false)}
+    >
+      ↑
+    </span>
+  );
+}
 
 export default function Home() {
   return (
@@ -30,10 +49,10 @@ export default function Home() {
       <nav className="relative z-20 flex items-center justify-between border-b border-white/8 bg-black/70 px-8 py-4 backdrop-blur-sm">
         {/* Logo */}
         <span
-          className="logo-group flex items-center text-base font-black tracking-[0.2em] text-white uppercase select-none cursor-default"
+          className="flex items-center text-xl font-black tracking-[0.2em] text-white uppercase select-none cursor-default"
           style={{ fontFamily: "var(--font-cinzel), serif" }}
         >
-          V<span className="logo-arrow">↑</span>
+          V<SpinArrow />
         </span>
 
         {/* Nav links */}
@@ -50,7 +69,7 @@ export default function Home() {
               className="group flex flex-col items-center gap-1"
               style={{ fontFamily: "var(--font-cinzel), serif" }}
             >
-              <span className="text-[11px] font-semibold tracking-[0.25em] uppercase text-white/70 transition group-hover:text-amber-400">
+              <span className="text-sm font-semibold tracking-[0.25em] uppercase text-white/70 transition group-hover:text-amber-400">
                 {label}
               </span>
               <span className="flex gap-[3px]">
@@ -82,7 +101,7 @@ export default function Home() {
             title={label}
             className="flex flex-col items-center gap-1 opacity-50 transition hover:opacity-100"
           >
-            <span className="text-base">{icon}</span>
+            <span className="text-xl">{icon}</span>
           </Link>
         ))}
       </div>
@@ -97,28 +116,28 @@ export default function Home() {
               "0 0 80px rgba(200,164,60,0.25), 0 2px 4px rgba(0,0,0,0.8)",
           }}
         >
-          V<span className="logo-arrow">↑</span>
+          V<SpinArrow />
         </h1>
 
         <p
-          className="mt-5 max-w-md text-[11px] font-normal uppercase tracking-[0.2em] text-white/55"
+          className="mt-5 max-w-2xl text-base font-normal uppercase tracking-[0.18em] leading-relaxed text-white/55"
           style={{ fontFamily: "var(--font-cinzel), serif" }}
         >
-          Three magical worlds. Pick a topic, pick a buddy, learn together.
+          Voice-powered learning worlds built for every kind of learner. Talk to your AI buddy, play, and grow — no reading required.
         </p>
 
         {/* CTA buttons */}
         <div className="mt-12 flex flex-wrap items-center justify-center gap-5">
           <Link
             href="/select-topic"
-            className="border border-amber-500 px-12 py-3 text-[11px] font-bold uppercase tracking-[0.3em] text-amber-400 transition hover:bg-amber-500/10 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+            className="border border-amber-500 px-14 py-4 text-sm font-bold uppercase tracking-[0.3em] text-amber-400 transition hover:bg-amber-500/10 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)]"
             style={{ fontFamily: "var(--font-cinzel), serif" }}
           >
             Start
           </Link>
           <Link
             href="/select-topic"
-            className="border border-white/35 px-12 py-3 text-[11px] font-bold uppercase tracking-[0.3em] text-white/75 transition hover:bg-white/5"
+            className="border border-white/35 px-14 py-4 text-sm font-bold uppercase tracking-[0.3em] text-white/75 transition hover:bg-white/5"
             style={{ fontFamily: "var(--font-cinzel), serif" }}
           >
             See Games
@@ -137,7 +156,7 @@ export default function Home() {
       <div className="fixed bottom-6 right-6 z-20 flex items-center gap-3">
         <Link
           href="/select-topic"
-          className="border border-white/20 bg-black/50 px-5 py-2 text-[10px] uppercase tracking-[0.25em] text-white/55 backdrop-blur-md transition hover:text-white/90"
+          className="border border-white/20 bg-black/50 px-6 py-2.5 text-xs uppercase tracking-[0.25em] text-white/55 backdrop-blur-md transition hover:text-white/90"
           style={{ fontFamily: "var(--font-cinzel), serif" }}
         >
           Begin Journey
@@ -156,7 +175,7 @@ export default function Home() {
 function Tag({ emoji, label }: { emoji: string; label: string }) {
   return (
     <span
-      className="border border-white/12 bg-white/4 px-5 py-1.5 text-[10px] uppercase tracking-[0.2em] text-white/45 backdrop-blur-md"
+      className="border border-white/12 bg-white/4 px-6 py-2 text-sm uppercase tracking-[0.2em] text-white/45 backdrop-blur-md"
       style={{ fontFamily: "var(--font-cinzel), serif" }}
     >
       {emoji} {label}

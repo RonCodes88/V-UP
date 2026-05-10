@@ -85,7 +85,7 @@ function TrophyModel() {
 export default function Trophy3D() {
   return (
     <Canvas
-      camera={{ position: [0, 0, 3.2], fov: 38 }}
+      camera={{ position: [0, 0.15, 3.6], fov: 38 }}
       gl={{ antialias: true, alpha: true }}
     >
       <ambientLight intensity={0.55} />

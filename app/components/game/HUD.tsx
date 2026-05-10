@@ -313,7 +313,7 @@ export default function HUD() {
       {status === "won" && (
         <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
           <div className="center-card border border-amber-500/40 bg-black/80 px-12 py-10 text-center shadow-2xl backdrop-blur-md">
-            <div className="mx-auto flex h-52 w-52 items-center justify-center">
+            <div className="mx-auto flex h-64 w-64 items-center justify-center">
               <Trophy3D />
             </div>
             <div
