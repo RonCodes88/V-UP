@@ -9,11 +9,7 @@ export const NODE_POSITIONS: [number, number, number][] = [
   [0, 0, 2],       // start — player starts here
   [0, 0, -8],      // node 1
   [3.5, 0, -17],   // node 2 — curves right
-  [-3, 0, -26],    // node 3 — curves left
-  [2, 0, -35],     // node 4
-  [-3.5, 0, -44],  // node 5
-  [2, 0, -53],     // node 6
-  [0, 0, -62],     // node 7 — treasure
+  [0, 0, -26],     // node 3 — treasure
 ];
 
 // Seeded RNG for deterministic tree placement
@@ -34,8 +30,8 @@ function buildPathCurve() {
 
 function Ground() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -30]} receiveShadow>
-      <planeGeometry args={[80, 130]} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -12]} receiveShadow>
+      <planeGeometry args={[80, 60]} />
       <meshStandardMaterial color="#1e3a1e" roughness={1} metalness={0} />
     </mesh>
   );
@@ -76,7 +72,7 @@ function PathSegments() {
 }
 
 function Trees() {
-  const treeCount = 220;
+  const treeCount = 120;
 
   const matrices = useMemo(() => {
     const mats: THREE.Matrix4[] = [];
@@ -85,7 +81,7 @@ function Trees() {
       const side = r() > 0.5 ? 1 : -1;
       const spread = 6 + r() * 22;
       const x = side * spread + (r() - 0.5) * 4;
-      const z = -64 * r();
+      const z = -28 * r();
       const scale = 0.7 + r() * 1.3;
       const mat = new THREE.Matrix4();
       mat.compose(

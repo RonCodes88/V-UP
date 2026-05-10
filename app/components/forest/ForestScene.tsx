@@ -18,7 +18,7 @@ export default function ForestScene() {
       dpr={[1, 2]}
     >
       <color attach="background" args={["#0a1a0a"]} />
-      <fog attach="fog" args={["#0d1f0d", 18, 55]} />
+      <fog attach="fog" args={["#0d1f0d", 18, 45]} />
 
       <ambientLight intensity={0.35} color="#a8d8a8" />
       <hemisphereLight args={["#5a9a5a", "#1a2a0a", 0.6]} />
@@ -52,7 +52,7 @@ export default function ForestScene() {
           speed={0.15}
           color="#aaff88"
           opacity={0.6}
-          position={[0, 2, -25]}
+          position={[0, 2, -12]}
         />
         <Sparkles
           count={30}
@@ -61,7 +61,7 @@ export default function ForestScene() {
           speed={0.1}
           color="#ffdd88"
           opacity={0.4}
-          position={[0, 1.5, -50]}
+          position={[0, 1.5, -22]}
         />
       </Suspense>
 

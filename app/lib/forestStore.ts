@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { QUESTIONS, type MCQ } from "./forestQuestions";
+import { forestAnswerMatches, QUESTIONS, type MCQ } from "./forestQuestions";
 
 export type ForestStatus = "idle" | "answering" | "walking" | "won";
 
@@ -10,17 +10,16 @@ type ForestState = {
   currentQuestion: MCQ;
   stepCredits: number;
   lastAgentMessage: string;
-  awaitingEval: boolean;
   signingMode: boolean;
   error: string | null;
 
   startGame: () => void;
-  submitAnswer: (letter: "A" | "B" | "C" | "D") => "correct" | "wrong";
+  checkAnswer: (userText: string) => void;
+  grantKey: () => void;
   walkForward: () => boolean;
   finishWalk: () => void;
   celebrateWin: () => void;
   setAgentMessage: (text: string) => void;
-  onUserSpoke: () => void;
   setError: (e: string | null) => void;
   setStatus: (s: ForestStatus) => void;
   setSigningMode: (v: boolean) => void;
@@ -34,7 +33,6 @@ export const useForestStore = create<ForestState>((set, get) => ({
   currentQuestion: QUESTIONS[0],
   stepCredits: 0,
   lastAgentMessage: "",
-  awaitingEval: false,
   signingMode: false,
   error: null,
 
@@ -46,18 +44,31 @@ export const useForestStore = create<ForestState>((set, get) => ({
       currentQuestion: QUESTIONS[0],
       stepCredits: 0,
       lastAgentMessage: "",
-      awaitingEval: false,
       error: null,
     }),
 
-  submitAnswer: (letter) => {
-    const { currentQuestion, keys, status } = get();
-    if (status !== "answering") return "wrong";
-    if (letter === currentQuestion.answer) {
-      set({ keys: keys + 1, stepCredits: 1, awaitingEval: false });
-      return "correct";
-    }
-    return "wrong";
+  checkAnswer: (userText) => {
+    const { currentQuestion, status, stepCredits, keys, nodeIndex } = get();
+    if (status !== "answering" || stepCredits > 0) return;
+    if (!forestAnswerMatches(currentQuestion, userText)) return;
+    set({
+      keys: keys + 1,
+      stepCredits: 0,
+      nodeIndex: nodeIndex + 1,
+      status: "walking",
+    });
+  },
+
+  grantKey: () => {
+    const { status, stepCredits, keys, nodeIndex } = get();
+    if (status !== "answering") return;
+    if (stepCredits > 0) return;
+    set({
+      keys: keys + 1,
+      stepCredits: 0,
+      nodeIndex: nodeIndex + 1,
+      status: "walking",
+    });
   },
 
   walkForward: () => {
@@ -77,7 +88,6 @@ export const useForestStore = create<ForestState>((set, get) => ({
       set({
         status: "answering",
         currentQuestion: QUESTIONS[nodeIndex],
-        awaitingEval: false,
       });
     }
   },
@@ -85,44 +95,34 @@ export const useForestStore = create<ForestState>((set, get) => ({
   celebrateWin: () => {
     const { keys } = get();
     const msg =
-      keys === 7
-        ? "You found ALL 7 Keys! The treasure is WIDE open!"
-        : keys >= 5
+      keys === 3
+        ? "You found ALL 3 Keys! The treasure is WIDE open!"
+        : keys >= 2
           ? "Wonderful! You found most of the keys — the treasure opens!"
-          : keys >= 3
-            ? "Great exploring! The treasure opens!"
-            : "You made it to the treasure! Every explorer learns along the way.";
+          : "You made it to the treasure! Every explorer learns along the way.";
     set({ status: "won", lastAgentMessage: msg });
   },
 
   setAgentMessage: (text) => {
-    const clean = text.replace(/<call:[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    const clean = text
+      .replace(/<call:[^>]+>/g, "")
+      .replace(/\bgrantKey\s*\([^)]*\)/gi, "")
+      .replace(/\bgrantKey\b/gi, "")
+      .replace(/\bsubmitAnswer\s*\([^)]*\)/gi, "")
+      .replace(/\bsubmitAnswer\b/gi, "")
+      .replace(/\bcelebrateWin\s*\([^)]*\)/gi, "")
+      .replace(/\bcelebrateWin\b/gi, "")
+      .replace(/\bgetGameState\s*\([^)]*\)/gi, "")
+      .replace(/\bKEY_GRANTED:\d+\b/gi, "")
+      .replace(/\b(i will|i'll|let me|going to|gonna)\s+(call|use|invoke|run)\b[^.!?]*/gi, "")
+      .replace(/Speak this verbatim[^"]*"?/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
     if (!clean) return;
-    const { status, stepCredits, keys, awaitingEval } = get();
-    // Credit already granted — ignore all agent speech until player walks
+    const { status, stepCredits } = get();
     if (stepCredits > 0) return;
     if (status === "walking") return;
-    if (
-      awaitingEval &&
-      status === "answering" &&
-      isPositive(clean) &&
-      !isNegative(clean)
-    ) {
-      set({ lastAgentMessage: clean, keys: keys + 1, stepCredits: 1, awaitingEval: false });
-      return;
-    }
-    if (awaitingEval && isNegative(clean)) {
-      set({ lastAgentMessage: clean, awaitingEval: false });
-      return;
-    }
     set({ lastAgentMessage: clean });
-  },
-
-  onUserSpoke: () => {
-    const { status, stepCredits } = get();
-    if (status === "answering" && stepCredits === 0) {
-      set({ awaitingEval: true });
-    }
   },
 
   setError: (e) => set({ error: e }),
@@ -137,20 +137,7 @@ export const useForestStore = create<ForestState>((set, get) => ({
       currentQuestion: QUESTIONS[0],
       stepCredits: 0,
       lastAgentMessage: "",
-      awaitingEval: false,
       signingMode: false,
       error: null,
     }),
 }));
-
-const POSITIVE = [
-  /\bthat'?s right\b/, /\bcorrect\b/, /\byes\b/, /\bwell done\b/,
-  /\bgreat job\b/, /\bgood job\b/, /\bperfect\b/, /\bexcellent\b/,
-  /\byou got it\b/, /\bexactly\b/, /\bwonderful\b/, /\bamazing\b/,
-];
-const NEGATIVE = [
-  /\bnot quite\b/, /\balmost\b/, /\btry again\b/, /\blet'?s try\b/,
-  /\boops\b/, /\bgood try\b/, /\bnot exactly\b/,
-];
-function isPositive(t: string) { return POSITIVE.some((r) => r.test(t.toLowerCase())); }
-function isNegative(t: string) { return NEGATIVE.some((r) => r.test(t.toLowerCase())); }
