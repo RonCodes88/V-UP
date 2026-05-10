@@ -22,7 +22,6 @@ export default function ForestHUD() {
   const lastAgentMessage = useForestStore((s) => s.lastAgentMessage);
   const bubbleVariant = useForestStore((s) => s.bubbleVariant);
   const currentQuestion = useForestStore((s) => s.currentQuestion);
-  const questionReady = useForestStore((s) => s.questionReady);
   const error = useForestStore((s) => s.error);
   const reset = useForestStore((s) => s.reset);
   const setError = useForestStore((s) => s.setError);
@@ -159,12 +158,18 @@ export default function ForestHUD() {
           </div>
         )}
 
-        {/* Key earned notification — brief toast, arrow in 3D scene handles walk */}
+        {/* Key earned — walk forward button */}
         {awaitingMove && forestStatus !== "won" && (
-          <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 px-4">
+          <div className="pointer-events-auto absolute bottom-0 left-0 right-0 flex flex-col items-center gap-3 p-5">
             <div className="rounded-2xl border border-emerald-300/50 bg-emerald-900/70 px-5 py-2.5 text-center shadow-xl backdrop-blur-md">
-              <span className="text-sm font-bold text-emerald-200">✨ Key earned! Click the arrow on the path to continue</span>
+              <span className="text-sm font-bold text-emerald-200">✨ Key earned!</span>
             </div>
+            <button
+              onClick={advanceNode}
+              className="rounded-full bg-emerald-400 px-8 py-3.5 text-lg font-extrabold text-emerald-950 shadow-2xl shadow-emerald-500/40 ring-2 ring-emerald-200 transition hover:scale-105 hover:bg-emerald-300 listening-glow"
+            >
+              🌿 Walk Forward →
+            </button>
           </div>
         )}
 
@@ -198,8 +203,8 @@ export default function ForestHUD() {
           </div>
         )}
 
-        {/* Choice display — only after agent has spoken the question, hidden once answered correctly */}
-        {forestStatus === "answering" && questionReady && !awaitingMove && !isWalking && (
+        {/* Choice display — visible immediately when answering, hidden once answered correctly */}
+        {forestStatus === "answering" && !awaitingMove && (
           <div className="pointer-events-auto absolute bottom-0 left-0 right-0 flex flex-col items-center gap-3 p-5">
             {/* Current question */}
             {currentQuestion && (

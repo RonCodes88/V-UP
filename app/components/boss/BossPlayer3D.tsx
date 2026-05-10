@@ -6,7 +6,8 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { useBossStore } from "@/app/lib/bossStore";
 import { useHubStore } from "@/app/lib/hubStore";
-import { CHARACTERS, type CharacterSlug } from "@/app/lib/characters";
+import { type CharacterSlug } from "@/app/lib/characters";
+import CatModel from "@/app/components/shared/CatModel";
 
 export default function BossPlayer3D() {
   const root = useRef<THREE.Group>(null!);
@@ -82,7 +83,12 @@ export default function BossPlayer3D() {
 function CharacterVisual({ slug }: { slug: CharacterSlug }) {
   if (slug === "fox") return <FoxModel />;
   if (slug === "robot") return <RobotModel />;
-  if (slug === "cat") return <CatPrimitive />;
+  if (slug === "cat")
+    return (
+      <group position={[0, 0.55, 0]} rotation={[0, Math.PI, 0]}>
+        <CatModel />
+      </group>
+    );
   return <BearPrimitive />;
 }
 
@@ -120,48 +126,6 @@ function RobotModel() {
       position={[0, 0, 0]}
       rotation={[0, Math.PI, 0]}
     />
-  );
-}
-
-function CatPrimitive() {
-  const color = CHARACTERS.cat.color;
-  return (
-    <group position={[0, 0.55, 0]}>
-      <mesh castShadow>
-        <sphereGeometry args={[0.36, 24, 24]} />
-        <meshStandardMaterial color={color} roughness={0.7} />
-      </mesh>
-      <group position={[0, 0.45, 0.05]}>
-        <mesh castShadow>
-          <sphereGeometry args={[0.3, 24, 24]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[-0.18, 0.24, -0.02]}>
-          <coneGeometry args={[0.09, 0.2, 8]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[0.18, 0.24, -0.02]}>
-          <coneGeometry args={[0.09, 0.2, 8]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[-0.11, 0.05, -0.27]}>
-          <sphereGeometry args={[0.045, 12, 12]} />
-          <meshStandardMaterial
-            color="#0a0a0a"
-            emissive="#fff8c0"
-            emissiveIntensity={0.6}
-          />
-        </mesh>
-        <mesh position={[0.11, 0.05, -0.27]}>
-          <sphereGeometry args={[0.045, 12, 12]} />
-          <meshStandardMaterial
-            color="#0a0a0a"
-            emissive="#fff8c0"
-            emissiveIntensity={0.6}
-          />
-        </mesh>
-      </group>
-    </group>
   );
 }
 

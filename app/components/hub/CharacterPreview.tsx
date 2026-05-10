@@ -6,7 +6,7 @@ import { Suspense, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { CharacterSlug } from "@/app/lib/characters";
-import { CHARACTERS } from "@/app/lib/characters";
+import CatModel from "@/app/components/shared/CatModel";
 
 const CAM_CONFIG: Record<CharacterSlug, { pos: [number, number, number]; fov: number }> = {
   bear: { pos: [0, 0.3, 2.6], fov: 36 },
@@ -205,40 +205,9 @@ function RobotPreview() {
 }
 
 function CatPreview() {
-  const color = CHARACTERS.cat.color;
-  const dark = "#a8924a";
   return (
     <group position={[0, -0.15, 0]}>
-      <mesh castShadow>
-        <sphereGeometry args={[0.32, 24, 24]} />
-        <meshStandardMaterial color={color} roughness={0.7} />
-      </mesh>
-      <group position={[0, 0.42, 0.05]}>
-        <mesh castShadow>
-          <sphereGeometry args={[0.27, 24, 24]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[-0.16, 0.22, -0.02]}>
-          <coneGeometry args={[0.08, 0.18, 8]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[0.16, 0.22, -0.02]}>
-          <coneGeometry args={[0.08, 0.18, 8]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[-0.1, 0.05, 0.24]}>
-          <sphereGeometry args={[0.04, 12, 12]} />
-          <meshStandardMaterial color="#0a0a0a" />
-        </mesh>
-        <mesh position={[0.1, 0.05, 0.24]}>
-          <sphereGeometry args={[0.04, 12, 12]} />
-          <meshStandardMaterial color="#0a0a0a" />
-        </mesh>
-        <mesh position={[0, -0.04, 0.27]}>
-          <sphereGeometry args={[0.035, 12, 12]} />
-          <meshStandardMaterial color={dark} />
-        </mesh>
-      </group>
+      <CatModel />
     </group>
   );
 }
