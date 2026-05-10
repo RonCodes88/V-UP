@@ -8,10 +8,10 @@ import { useHubStore } from "@/app/lib/hubStore";
 import { buildForestFirstMessage, FOREST_SYSTEM_PROMPT } from "@/app/lib/forestAgentPersona";
 
 const CHOICE_COLORS = {
-  A: "border border-blue-400/25 bg-blue-950/35 text-blue-100/90",
-  B: "border border-emerald-400/25 bg-emerald-950/35 text-emerald-100/90",
-  C: "border border-orange-400/25 bg-orange-950/35 text-orange-100/90",
-  D: "border border-rose-400/25 bg-rose-950/35 text-rose-100/90",
+  A: "border border-amber-400/30 bg-amber-950/30 text-amber-100/90",
+  B: "border border-yellow-400/25 bg-yellow-950/25 text-yellow-100/90",
+  C: "border border-orange-400/25 bg-orange-950/25 text-orange-100/90",
+  D: "border border-stone-400/25 bg-stone-900/30 text-stone-100/90",
 };
 
 export default function ForestHUD() {
@@ -128,13 +128,19 @@ export default function ForestHUD() {
           <div className="flex items-start gap-3">
             <button
               onClick={() => { if (connected) conv.endSession(); router.push("/"); }}
-              className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white shadow-lg ring-1 ring-white/20 backdrop-blur-md transition hover:bg-white/20"
+              className="border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold text-white/75 backdrop-blur-md transition hover:text-white/90"
+              style={{ fontFamily: "var(--font-cinzel), serif" }}
             >
               ← Hub
             </button>
             <div>
-              <div className="text-lg font-bold tracking-tight text-white drop-shadow-lg">🌲 Forest Path Adventure</div>
-              <div className="text-xs text-white/70">Answer questions → collect keys → find treasure</div>
+              <div
+                className="text-lg font-bold tracking-[0.15em] uppercase text-white drop-shadow-lg"
+                style={{ fontFamily: "var(--font-cinzel), serif" }}
+              >
+                Forest Path Adventure
+              </div>
+              <div className="text-xs tracking-[0.1em] text-white/55">Answer questions → collect keys → find treasure</div>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -156,17 +162,26 @@ export default function ForestHUD() {
           <div className="pointer-events-none absolute left-1/2 top-1/2 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 px-6">
             <div
               key={currentQuestion.id}
-              className="center-card pointer-events-auto rounded-3xl border-2 bg-gradient-to-br from-green-500/30 to-teal-600/30 border-green-300/40 p-6 shadow-2xl backdrop-blur-md"
+              className="center-card pointer-events-auto border border-amber-500/30 bg-black/70 p-6 shadow-2xl backdrop-blur-md"
             >
-              <div className="text-xs font-semibold uppercase tracking-widest text-white/70">
-                🌲 Forest Guide Finn — Question {nodeIndex + 1}/7
+              <div
+                className="text-xs font-semibold uppercase tracking-widest text-amber-400/80"
+                style={{ fontFamily: "var(--font-cinzel), serif" }}
+              >
+                Forest Guide Finn — Question {nodeIndex + 1}/7
               </div>
-              <div className="mt-2 text-2xl font-semibold leading-snug text-white drop-shadow">
+              <div
+                className="mt-2 text-2xl font-semibold leading-snug text-white drop-shadow"
+                style={{ fontFamily: "var(--font-cinzel), serif" }}
+              >
                 {currentQuestion.question}
               </div>
 
               {/* ABCD — display-only reference (voice-first; not interactive) */}
-              <div className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-white/45">
+              <div
+                className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-white/45"
+                style={{ fontFamily: "var(--font-cinzel), serif" }}
+              >
                 Choices — listen and say a letter
               </div>
               <div
@@ -179,6 +194,7 @@ export default function ForestHUD() {
                     key={letter}
                     tabIndex={-1}
                     className={`pointer-events-none flex cursor-default items-center gap-2 rounded-xl px-3 py-2.5 select-none ${CHOICE_COLORS[letter]}`}
+                    style={{ fontFamily: "var(--font-cinzel), serif" }}
                   >
                     <span className="text-lg font-extrabold leading-none tabular-nums">{letter}</span>
                     <span className="text-sm font-medium leading-tight opacity-95">{currentQuestion.choices[letter]}</span>
@@ -198,11 +214,12 @@ export default function ForestHUD() {
                 <div className="mt-4 flex items-center justify-center gap-3">
                   <button
                     onClick={() => conv.setMuted(!muted)}
-                    className={`rounded-full px-6 py-2.5 text-sm font-bold shadow-xl ring-2 transition ${
+                    className={`border px-6 py-2.5 text-sm font-bold transition ${
                       muted
-                        ? "bg-emerald-400 text-emerald-950 ring-emerald-200 hover:scale-105 hover:bg-emerald-300 listening-glow"
-                        : "bg-rose-500 text-rose-50 ring-rose-300 hover:bg-rose-400"
+                        ? "border-amber-500 text-amber-400 hover:bg-amber-500/10 listening-glow"
+                        : "border-rose-500/60 text-rose-300 hover:bg-rose-500/10"
                     }`}
+                    style={{ fontFamily: "var(--font-cinzel), serif" }}
                   >
                     {muted ? "🎤 Start Listening" : "🔇 Stop Listening"}
                   </button>
@@ -212,24 +229,26 @@ export default function ForestHUD() {
                       setSigningMode(next);
                       conv.setMuted(next);
                     }}
-                    className={`rounded-full px-4 py-2.5 text-sm font-semibold ring-1 transition ${
+                    className={`border px-4 py-2.5 text-sm font-semibold transition ${
                       signingMode
-                        ? "bg-emerald-500/40 text-emerald-100 ring-emerald-400/60"
-                        : "bg-white/10 text-white ring-white/20 hover:bg-white/20"
+                        ? "border-amber-500/60 bg-amber-500/15 text-amber-200"
+                        : "border-white/20 bg-black/40 text-white/75 hover:bg-white/5"
                     }`}
+                    style={{ fontFamily: "var(--font-cinzel), serif" }}
                   >
                     {signingMode ? "✋ Signing" : "✋ Sign"}
                   </button>
                   <button
                     onClick={stop}
-                    className="rounded-full bg-rose-500/90 px-4 py-2.5 text-sm font-semibold text-rose-950 shadow-xl transition hover:bg-rose-400"
+                    className="border border-rose-500/60 px-4 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/10"
+                    style={{ fontFamily: "var(--font-cinzel), serif" }}
                   >
                     End
                   </button>
                 </div>
               )}
 
-              <div className="mt-2 text-center text-xs text-white/50 font-medium">
+              <div className="mt-2 text-center text-xs text-white/50 font-medium" style={{ fontFamily: "var(--font-cinzel), serif" }}>
                 {signingMode ? "✋ Space = add letter · Enter = submit word" : '🎤 Say "A", "B", "C", or "D" — on-screen choices are display-only'}
               </div>
             </div>
@@ -239,12 +258,17 @@ export default function ForestHUD() {
         {/* Key earned — press ↑ to walk */}
         {showKeyEarned && (
           <div className="pointer-events-none absolute left-1/2 top-1/2 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 px-6 text-center">
-            <div className="center-card rounded-3xl border-2 border-emerald-300/50 bg-gradient-to-br from-emerald-500/30 to-teal-500/30 px-6 py-6 shadow-2xl backdrop-blur-md">
+            <div className="center-card border border-amber-500/40 bg-black/70 px-6 py-6 shadow-2xl backdrop-blur-md">
               <div className="text-4xl">✨🗝️</div>
-              <div className="mt-2 text-2xl font-bold text-emerald-200">Key earned!</div>
-              <div className="mt-3 text-base font-semibold text-emerald-300">Press ↑ to walk forward</div>
+              <div
+                className="mt-2 text-2xl font-bold uppercase tracking-[0.15em] text-amber-300"
+                style={{ fontFamily: "var(--font-cinzel), serif" }}
+              >
+                Key earned!
+              </div>
+              <div className="mt-3 text-base font-semibold text-white/75">Press ↑ to walk forward</div>
               <div className="mt-3 flex items-center justify-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400 text-2xl font-black text-emerald-950 shadow-xl ring-2 ring-emerald-200 listening-glow">
+                <div className="flex h-14 w-14 items-center justify-center border border-amber-500 bg-amber-500/10 text-2xl font-black text-amber-300 shadow-xl listening-glow">
                   ↑
                 </div>
               </div>
@@ -255,8 +279,10 @@ export default function ForestHUD() {
         {/* Walking indicator */}
         {status === "walking" && (
           <div className="pointer-events-none absolute left-1/2 top-1/2 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 px-6 text-center">
-            <div className="rounded-2xl border border-white/15 bg-black/40 px-6 py-3 text-white/80 backdrop-blur-md text-sm font-semibold">
-              🌿 Walking down the path…
+            <div className="border border-white/8 bg-black/60 px-6 py-3 text-white/70 backdrop-blur-md text-sm font-semibold tracking-[0.15em] uppercase"
+              style={{ fontFamily: "var(--font-cinzel), serif" }}
+            >
+              Walking down the path…
             </div>
           </div>
         )}
@@ -264,26 +290,39 @@ export default function ForestHUD() {
         {/* Start splash */}
         {status === "idle" && (
           <div className="pointer-events-auto absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-6 text-center">
-            <div className="center-card rounded-3xl border-2 border-emerald-300/30 bg-gradient-to-br from-emerald-700/40 to-green-800/40 p-7 shadow-2xl backdrop-blur-md">
+            <div className="center-card border border-amber-500/30 bg-black/75 p-7 shadow-2xl backdrop-blur-md">
               <div className="text-5xl">🌲✨</div>
-              <div className="mt-2 text-2xl font-bold text-white">Forest Path Adventure</div>
-              <div className="mt-2 text-sm text-white/85">Answer 7 spelling & reading questions. Collect Knowledge Keys. Open the treasure!</div>
+              <div
+                className="mt-4 text-2xl font-black uppercase tracking-[0.2em] text-white"
+                style={{
+                  fontFamily: "var(--font-cinzel), serif",
+                  textShadow: "0 0 40px rgba(200,164,60,0.3), 0 2px 4px rgba(0,0,0,0.8)",
+                }}
+              >
+                Forest Path Adventure
+              </div>
+              <div className="mt-3 text-sm uppercase tracking-[0.12em] leading-relaxed text-white/55"
+                style={{ fontFamily: "var(--font-cinzel), serif" }}
+              >
+                Answer 7 spelling & reading questions. Collect Knowledge Keys. Open the treasure!
+              </div>
               <button
                 onClick={start}
                 disabled={starting}
-                className="mt-5 rounded-full bg-emerald-400 px-7 py-3 text-base font-bold text-emerald-950 shadow-2xl shadow-emerald-500/40 transition hover:scale-105 hover:bg-emerald-300 disabled:opacity-60 disabled:hover:scale-100"
+                className="mt-6 border border-amber-500 px-10 py-3 text-sm font-bold uppercase tracking-[0.3em] text-amber-400 transition hover:bg-amber-500/10 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-50"
+                style={{ fontFamily: "var(--font-cinzel), serif" }}
               >
-                {starting ? "Connecting…" : "🌿 Enter the Forest"}
+                {starting ? "Connecting…" : "Enter the Forest"}
               </button>
               {error && (
-                <div className="mt-3 rounded-xl border border-rose-400/40 bg-rose-500/10 p-2 text-xs text-rose-200">{error}</div>
+                <div className="mt-3 border border-rose-400/40 bg-rose-500/10 p-2 text-xs text-rose-200">{error}</div>
               )}
             </div>
           </div>
         )}
 
         {error && status !== "idle" && status !== "won" && (
-          <div className="pointer-events-auto absolute left-1/2 top-20 max-w-md -translate-x-1/2 rounded-xl border border-rose-400/40 bg-rose-500/10 p-2 text-center text-xs text-rose-200">
+          <div className="pointer-events-auto absolute left-1/2 top-20 max-w-md -translate-x-1/2 border border-rose-400/40 bg-rose-500/10 p-2 text-center text-xs text-rose-200">
             {error}
           </div>
         )}
@@ -292,28 +331,36 @@ export default function ForestHUD() {
       {/* Victory screen */}
       {status === "won" && (
         <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
-          <div className="center-card rounded-3xl border-2 border-yellow-300/60 bg-gradient-to-br from-yellow-400/30 to-amber-600/30 px-10 py-8 text-center shadow-2xl backdrop-blur-md max-w-md">
+          <div className="center-card border border-amber-400/40 bg-black/80 px-10 py-8 text-center shadow-2xl backdrop-blur-md max-w-md">
             <div className="text-6xl">{keys >= 5 ? "🏆" : keys >= 3 ? "🗝️" : "🌲"}</div>
-            <div className="mt-2 text-3xl font-extrabold text-yellow-200">
+            <div
+              className="mt-4 text-3xl font-extrabold uppercase tracking-[0.15em] text-amber-300"
+              style={{
+                fontFamily: "var(--font-cinzel), serif",
+                textShadow: "0 0 40px rgba(200,164,60,0.4), 0 2px 4px rgba(0,0,0,0.8)",
+              }}
+            >
               {keys >= 5 ? "Treasure Found!" : keys >= 3 ? "Great Exploring!" : "You Made It!"}
             </div>
-            <div className="mt-2 text-base text-white/90">{lastAgentMessage}</div>
-            <div className="mt-3 flex justify-center gap-1">
+            <div className="mt-2 text-base text-white/80">{lastAgentMessage}</div>
+            <div className="mt-4 flex justify-center gap-1">
               {Array.from({ length: 7 }, (_, i) => (
                 <span key={i} className={`text-xl ${i < keys ? "opacity-100" : "opacity-20"}`}>🗝️</span>
               ))}
             </div>
-            <div className="mt-2 text-sm text-white/70">{keys}/7 Knowledge Keys collected</div>
-            <div className="mt-5 flex gap-3 justify-center flex-wrap">
+            <div className="mt-2 text-sm tracking-[0.1em] text-white/55">{keys}/7 Knowledge Keys collected</div>
+            <div className="mt-6 flex gap-3 justify-center flex-wrap">
               <button
                 onClick={() => { if (connected) conv.endSession(); reset(); }}
-                className="rounded-full bg-emerald-400 px-6 py-2.5 text-sm font-bold text-emerald-950 shadow-xl transition hover:bg-emerald-300"
+                className="border border-amber-500 px-6 py-2.5 text-sm font-bold uppercase tracking-[0.25em] text-amber-400 transition hover:bg-amber-500/10"
+                style={{ fontFamily: "var(--font-cinzel), serif" }}
               >
-                🌿 Try Again
+                Try Again
               </button>
               <button
                 onClick={() => { if (connected) conv.endSession(); router.push("/"); }}
-                className="rounded-full bg-white/10 px-6 py-2.5 text-sm font-semibold text-white shadow-xl ring-1 ring-white/20 transition hover:bg-white/20"
+                className="border border-white/35 px-6 py-2.5 text-sm font-semibold uppercase tracking-[0.2em] text-white/75 transition hover:bg-white/5"
+                style={{ fontFamily: "var(--font-cinzel), serif" }}
               >
                 ← Back to Hub
               </button>
@@ -327,7 +374,10 @@ export default function ForestHUD() {
 
 function Pill({ children, highlight, pulse }: { children: React.ReactNode; highlight?: boolean; pulse?: boolean }) {
   return (
-    <div className={`rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md ring-1 ${highlight ? "bg-emerald-400/20 text-emerald-100 ring-emerald-400/40" : "bg-white/10 text-white ring-white/20"} ${pulse ? "listening-glow" : ""}`}>
+    <div
+      className={`border px-3 py-1 text-xs font-semibold backdrop-blur-md tracking-[0.1em] uppercase ${highlight ? "border-amber-400/40 bg-amber-400/10 text-amber-200" : "border-white/20 bg-black/40 text-white/70"} ${pulse ? "listening-glow" : ""}`}
+      style={{ fontFamily: "var(--font-cinzel), serif" }}
+    >
       {children}
     </div>
   );
