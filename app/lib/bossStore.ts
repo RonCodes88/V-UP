@@ -16,7 +16,7 @@ export type DamageEvent = {
 };
 
 const MAX_HP = 100;
-const DEFAULT_DAMAGE = 34;
+const DEFAULT_DAMAGE = 33;
 
 const BOSS_CORRECT_PATTERNS = [
   /\bcorrect!/i,
