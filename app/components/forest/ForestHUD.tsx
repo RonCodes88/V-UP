@@ -145,8 +145,8 @@ export default function ForestHUD() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            <Pill highlight={keys > 0}>🗝️ {keys}/7 keys</Pill>
-            <Pill>🌿 Fork {Math.min(nodeIndex + 1, 7)}/7</Pill>
+            <Pill highlight={keys > 0}>🗝️ {keys}/3 keys</Pill>
+            <Pill>🌿 Fork {Math.min(nodeIndex + 1, 3)}/3</Pill>
             <Pill highlight={hasCredit} pulse={hasCredit}>
               {connected && (
                 <span className={`mr-1 inline-block h-2 w-2 rounded-full ${muted ? "bg-rose-400" : isSpeaking ? "bg-emerald-400 listening-glow" : "bg-emerald-300"}`} />
@@ -169,7 +169,7 @@ export default function ForestHUD() {
                 className="text-xs font-semibold uppercase tracking-widest text-amber-400/80"
                 style={{ fontFamily: "var(--font-cinzel), serif" }}
               >
-                Forest Guide Finn — Question {nodeIndex + 1}/7
+                Forest Guide Finn — Question {nodeIndex + 1}/3
               </div>
               <div
                 className="mt-2 text-2xl font-semibold leading-snug text-white drop-shadow"
@@ -229,9 +229,7 @@ export default function ForestHUD() {
                   </button>
                   <button
                     onClick={() => {
-                      const next = !signingMode;
-                      setSigningMode(next);
-                      conv.setMuted(next);
+                      setSigningMode(!signingMode);
                     }}
                     className={`border px-4 py-2.5 text-sm font-semibold transition ${
                       signingMode
@@ -308,7 +306,7 @@ export default function ForestHUD() {
               <div className="mt-3 text-sm uppercase tracking-[0.12em] leading-relaxed text-white/55"
                 style={{ fontFamily: "var(--font-cinzel), serif" }}
               >
-                Answer 7 spelling & reading questions. Collect Knowledge Keys. Open the treasure!
+                Answer 3 spelling & reading questions. Collect Knowledge Keys. Open the treasure!
               </div>
               <button
                 onClick={start}
@@ -336,7 +334,7 @@ export default function ForestHUD() {
       {status === "won" && (
         <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
           <div className="center-card border border-amber-400/40 bg-black/80 px-10 py-8 text-center shadow-2xl backdrop-blur-md max-w-md">
-            <div className="text-6xl">{keys >= 5 ? "🏆" : keys >= 3 ? "🗝️" : "🌲"}</div>
+            <div className="text-6xl">{keys >= 3 ? "🏆" : keys >= 2 ? "🗝️" : "🌲"}</div>
             <div
               className="mt-4 text-3xl font-extrabold uppercase tracking-[0.15em] text-amber-300"
               style={{
@@ -344,15 +342,15 @@ export default function ForestHUD() {
                 textShadow: "0 0 40px rgba(200,164,60,0.4), 0 2px 4px rgba(0,0,0,0.8)",
               }}
             >
-              {keys >= 5 ? "Treasure Found!" : keys >= 3 ? "Great Exploring!" : "You Made It!"}
+              {keys >= 3 ? "Treasure Found!" : keys >= 2 ? "Great Exploring!" : "You Made It!"}
             </div>
             <div className="mt-2 text-base text-white/80">{lastAgentMessage}</div>
             <div className="mt-4 flex justify-center gap-1">
-              {Array.from({ length: 7 }, (_, i) => (
+              {Array.from({ length: 3 }, (_, i) => (
                 <span key={i} className={`text-xl ${i < keys ? "opacity-100" : "opacity-20"}`}>🗝️</span>
               ))}
             </div>
-            <div className="mt-2 text-sm tracking-[0.1em] text-white/55">{keys}/7 Knowledge Keys collected</div>
+            <div className="mt-2 text-sm tracking-[0.1em] text-white/55">{keys}/3 Knowledge Keys collected</div>
             <div className="mt-6 flex gap-3 justify-center flex-wrap">
               <button
                 onClick={() => { if (connected) conv.endSession(); reset(); }}

@@ -15,29 +15,18 @@ export default function ForestAgentBridge() {
   const status = useForestStore((s) => s.status);
   const prevStatus = useRef(status);
 
-  useConversationClientTool("submitAnswer", (params: Record<string, unknown>) => {
-    const raw = typeof params?.letter === "string" ? params.letter : "";
-    const upper = raw.trim().toUpperCase() as "A" | "B" | "C" | "D";
-    if (!["A", "B", "C", "D"].includes(upper)) {
-      return "invalid_letter; please use A, B, C, or D";
-    }
-    const result = useForestStore.getState().submitAnswer(upper);
-    if (result === "correct") {
-      return "correct. Say ONE short affirmation then STOP. Do NOT say anything else. Do NOT read the next question. Stay silent until the SYSTEM gives you the next question text.";
-    }
-    return result;
-  });
-
+  // Stubs — the client evaluates answers directly via checkAnswer.
+  // These exist only so ElevenLabs doesn't error if the agent tries to call them.
+  useConversationClientTool("grantKey", () => "ok");
+  useConversationClientTool("celebrateWin", () => "ok");
+  useConversationClientTool("submitAnswer", () => "ok");
   useConversationClientTool("getGameState", () => {
     const { nodeIndex, keys } = useForestStore.getState();
-    return `question: ${nodeIndex + 1}/7; keys_collected: ${keys}`;
+    return `question: ${nodeIndex + 1}/3; keys: ${keys}`;
   });
 
-  useConversationClientTool("celebrateWin", () => {
-    useForestStore.getState().celebrateWin();
-    return "celebrated";
-  });
-
+  // After walking finishes and status transitions to "answering",
+  // send the next question text to the agent for TTS.
   useEffect(() => {
     const wasWalking = prevStatus.current === "walking";
     prevStatus.current = status;

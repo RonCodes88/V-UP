@@ -13,7 +13,7 @@ export default function ForestGame() {
   const setError = useForestStore((s) => s.setError);
   const setStatus = useForestStore((s) => s.setStatus);
   const setAgentMessage = useForestStore((s) => s.setAgentMessage);
-  const onUserSpoke = useForestStore((s) => s.onUserSpoke);
+  const checkAnswer = useForestStore((s) => s.checkAnswer);
 
   useEffect(() => { resetForest(); }, [resetForest]);
 
@@ -33,14 +33,13 @@ export default function ForestGame() {
       }}
       onMessage={({ message, source }) => {
         if (source === "user") {
-          onUserSpoke();
+          checkAnswer(message);
         } else {
           setAgentMessage(message);
         }
       }}
     >
       <div className="relative h-screen w-screen overflow-hidden bg-[#0b0907]">
-        {/* Atmospheric background layers matching hub theme */}
         <div className="pointer-events-none absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-b from-[#1c1208] via-[#0e0b07] to-[#060404]" />
           <div className="absolute bottom-0 left-1/4 h-[500px] w-[500px] -translate-x-1/2 translate-y-1/4 rounded-full bg-amber-900/25 blur-[140px]" />

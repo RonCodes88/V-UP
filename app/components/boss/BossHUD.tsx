@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useConversation } from "@elevenlabs/react";
 import { useRouter } from "next/navigation";
@@ -64,7 +64,7 @@ export default function BossHUD() {
   useEffect(() => {
     if (bossHitKey === 0) return;
     const id = Date.now();
-    setFloatNums((prev) => [...prev, { id, text: "−25", side: "boss" }]);
+    setFloatNums((prev) => [...prev, { id, text: "−34", side: "boss" }]);
     const remove = setTimeout(
       () => setFloatNums((prev) => prev.filter((n) => n.id !== id)),
       1100,
@@ -76,7 +76,7 @@ export default function BossHUD() {
     if (playerHitKey === 0) return;
     setScreenFlash(true);
     const id = Date.now() + 1;
-    setFloatNums((prev) => [...prev, { id, text: "−25", side: "player" }]);
+    setFloatNums((prev) => [...prev, { id, text: "−34", side: "player" }]);
     const flash = setTimeout(() => setScreenFlash(false), 650);
     const remove = setTimeout(
       () => setFloatNums((prev) => prev.filter((n) => n.id !== id)),
