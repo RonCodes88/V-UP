@@ -12,7 +12,7 @@ type TopicCard = {
   blurb: string;
   imageSrc: string;
   imageAlt: string;
-  labelClass: string;
+  accentClass: string;
   hoverGlow: string;
 };
 
@@ -26,8 +26,8 @@ const TOPICS: TopicCard[] = [
     imageSrc: "/topic-cards/topic-maze.jpg",
     imageAlt:
       "Nighttime hedge maze with purple fog and lit paths, matching the Maze Quest scene",
-    labelClass: "text-[#c4b5fd]",
-    hoverGlow: "hover:shadow-[0_0_48px_rgba(167,139,255,0.35)]",
+    accentClass: "text-amber-300",
+    hoverGlow: "hover:shadow-[0_0_48px_rgba(180,140,60,0.25)]",
   },
   {
     topic: "math",
@@ -38,8 +38,8 @@ const TOPICS: TopicCard[] = [
     imageSrc: "/topic-cards/topic-boss.jpg",
     imageAlt:
       "Dark circular arena with dramatic red and magenta lighting like the boss battle",
-    labelClass: "text-[#fda4af]",
-    hoverGlow: "hover:shadow-[0_0_48px_rgba(244,114,182,0.35)]",
+    accentClass: "text-amber-400",
+    hoverGlow: "hover:shadow-[0_0_48px_rgba(200,140,40,0.3)]",
   },
   {
     topic: "spelling_asl",
@@ -50,8 +50,8 @@ const TOPICS: TopicCard[] = [
     imageSrc: "/topic-cards/topic-adventure.jpg",
     imageAlt:
       "Sunlit forest trail through green woods like the Word Adventure journey",
-    labelClass: "text-[#6ee7b7]",
-    hoverGlow: "hover:shadow-[0_0_48px_rgba(52,211,153,0.35)]",
+    accentClass: "text-amber-200",
+    hoverGlow: "hover:shadow-[0_0_48px_rgba(160,130,50,0.25)]",
   },
 ];
 
@@ -65,84 +65,127 @@ export default function SelectTopicPage() {
   };
 
   return (
-    <main className="relative min-h-screen w-full bg-gradient-to-b from-[#1a0b3a] via-[#10052a] to-[#06021a] px-6 py-10 text-white">
-      <div className="pointer-events-none absolute inset-0 opacity-50">
-        <div className="absolute left-1/3 top-0 h-72 w-72 rounded-full bg-indigo-500/30 blur-3xl" />
-        <div className="absolute right-1/4 bottom-0 h-80 w-80 rounded-full bg-fuchsia-500/30 blur-3xl" />
+    <main className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[#0b0907] text-white">
+
+      {/* ── Atmospheric background ── */}
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#1c1208] via-[#0e0b07] to-[#060404]" />
+        <div className="absolute bottom-0 left-1/4 h-[500px] w-[500px] -translate-x-1/2 translate-y-1/4 rounded-full bg-amber-900/20 blur-[140px]" />
+        <div className="absolute right-1/4 top-1/3 h-64 w-64 rounded-full bg-stone-700/10 blur-[110px]" />
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 50%, transparent 40%, #000 100%)",
+          }}
+        />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl">
-        <header className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white shadow-lg ring-1 ring-white/20 backdrop-blur-md transition hover:bg-white/20"
-          >
-            ← Back
-          </Link>
-          <div className="text-xs font-semibold uppercase tracking-widest text-white/60">
-            Step 1 of 2
-          </div>
-        </header>
+      {/* ── Top navigation ── */}
+      <nav className="relative z-20 flex items-center justify-between border-b border-white/8 bg-black/70 px-8 py-4 backdrop-blur-sm">
+        <Link
+          href="/"
+          className="logo-group flex items-center text-base font-black tracking-[0.2em] text-white uppercase"
+          style={{ fontFamily: "var(--font-cinzel), serif" }}
+        >
+          V<span className="logo-arrow">↑</span>
+        </Link>
 
-        <div className="mt-8 text-center">
-          <h1 className="text-4xl font-extrabold drop-shadow sm:text-5xl">
-            Pick a topic
+        <span
+          className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/40"
+          style={{ fontFamily: "var(--font-cinzel), serif" }}
+        >
+          Step 1 of 2
+        </span>
+
+        <Link
+          href="/"
+          className="border border-white/20 px-5 py-2 text-[10px] uppercase tracking-[0.25em] text-white/55 transition hover:border-white/40 hover:text-white/90"
+          style={{ fontFamily: "var(--font-cinzel), serif" }}
+        >
+          ← Back
+        </Link>
+      </nav>
+
+      {/* ── Content ── */}
+      <div className="relative z-10 flex flex-1 flex-col px-8 py-14">
+
+        {/* Heading */}
+        <div className="mb-12 text-center">
+          <h1
+            className="text-4xl font-black uppercase tracking-[0.15em] text-white sm:text-5xl"
+            style={{
+              fontFamily: "var(--font-cinzel), serif",
+              textShadow:
+                "0 0 60px rgba(200,164,60,0.2), 0 2px 4px rgba(0,0,0,0.8)",
+            }}
+          >
+            Choose Your Path
           </h1>
-          <p className="mt-2 text-base text-white/75 sm:text-lg">
+          <p
+            className="mt-3 text-[11px] uppercase tracking-[0.2em] text-white/40"
+            style={{ fontFamily: "var(--font-cinzel), serif" }}
+          >
             What do you want to practice today?
           </p>
         </div>
 
-        <div className="mt-10 grid gap-8 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 lg:gap-8">
+        {/* ── Topic cards ── */}
+        <div className="mx-auto w-full max-w-6xl grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {TOPICS.map((t) => (
             <button
               key={t.topic}
               type="button"
               onClick={() => pick(t.topic)}
-              className={`group flex w-full flex-col overflow-hidden rounded-3xl border-2 border-white/10 bg-white/5 text-left text-white shadow-2xl backdrop-blur-md ring-2 ring-white/10 transition duration-300 hover:-translate-y-1 hover:bg-white/10 hover:ring-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#10052a] ${t.hoverGlow}`}
+              className={`group flex w-full flex-col overflow-hidden border border-white/10 bg-white/3 text-left shadow-2xl backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:border-amber-500/40 hover:bg-white/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 ${t.hoverGlow}`}
             >
-              <div className="relative px-3 pt-3">
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute left-1/2 top-6 h-[42%] min-h-[8rem] w-[88%] max-w-none -translate-x-1/2 rounded-[1.75rem] bg-cover bg-center opacity-[0.45] blur-3xl saturate-[1.15]"
-                  style={{ backgroundImage: `url(${t.imageSrc})` }}
+              {/* Image */}
+              <div className="relative aspect-[5/4] w-full overflow-hidden bg-[#0c0905]">
+                <Image
+                  src={t.imageSrc}
+                  alt={t.imageAlt}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
+                  className="object-cover opacity-65 transition duration-500 group-hover:scale-[1.04] group-hover:opacity-80"
+                  priority={t.topic === "science"}
                 />
-                <div className="relative overflow-hidden rounded-2xl shadow-[0_12px_40px_-10px_rgba(0,0,0,0.55)] ring-1 ring-white/15">
-                  <div className="relative aspect-[5/4] w-full bg-[#12082e]">
-                    <Image
-                      src={t.imageSrc}
-                      alt={t.imageAlt}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
-                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                      priority={t.topic === "science"}
-                    />
-                    <div
-                      className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#10052a]/95 via-[#10052a]/20 to-transparent"
-                      aria-hidden
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-1 flex-col px-5 pb-5 pt-5">
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background:
+                      "linear-gradient(to top, #0b0907 0%, rgba(11,9,7,0.4) 50%, transparent 100%)",
+                  }}
+                  aria-hidden
+                />
+                {/* Game label on image */}
                 <p
-                  className={`text-xs font-semibold uppercase tracking-[0.12em] ${t.labelClass}`}
+                  className={`absolute bottom-3 left-4 text-[9px] font-bold uppercase tracking-[0.3em] ${t.accentClass}`}
+                  style={{ fontFamily: "var(--font-cinzel), serif" }}
                 >
                   {t.game}
                 </p>
-                <h2 className="mt-1.5 text-[1.125rem] font-semibold leading-snug tracking-tight text-white">
+              </div>
+
+              {/* Card body */}
+              <div className="flex flex-1 flex-col px-5 py-5">
+                <h2
+                  className="text-sm font-bold uppercase tracking-[0.18em] text-white"
+                  style={{ fontFamily: "var(--font-cinzel), serif" }}
+                >
                   {t.title}
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-white/75">
+                <p className="mt-2 text-[11px] leading-relaxed tracking-wide text-white/50">
                   {t.blurb}
                 </p>
-                <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
-                  <span className="text-sm font-semibold text-emerald-200 underline decoration-white/25 underline-offset-4 transition group-hover:text-emerald-100 group-hover:decoration-emerald-200/80">
+                <div className="mt-5 flex items-center justify-between border-t border-white/8 pt-4">
+                  <span
+                    className={`text-[10px] uppercase tracking-[0.25em] transition group-hover:text-amber-300 ${t.accentClass}`}
+                    style={{ fontFamily: "var(--font-cinzel), serif" }}
+                  >
                     Continue
                   </span>
                   <span
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-400 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-500/35 transition group-hover:bg-emerald-300"
+                    className="flex h-7 w-7 items-center justify-center border border-amber-500/40 text-xs text-amber-400 transition group-hover:border-amber-400 group-hover:bg-amber-500/10"
                     aria-hidden
                   >
                     →
@@ -151,6 +194,16 @@ export default function SelectTopicPage() {
               </div>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* ── Bottom-right badge ── */}
+      <div className="fixed bottom-6 right-6 z-20">
+        <div
+          className="border border-white/15 bg-black/50 px-5 py-2 text-[10px] uppercase tracking-[0.25em] text-white/30 backdrop-blur-md"
+          style={{ fontFamily: "var(--font-cinzel), serif" }}
+        >
+          Step 1 — Topic
         </div>
       </div>
     </main>
