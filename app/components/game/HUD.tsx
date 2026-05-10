@@ -39,6 +39,10 @@ export default function HUD() {
   const setStatus = useGameStore((s) => s.setStatus);
 
   const [starting, setStarting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const setVideoQuestions = useGameStore((s) => s.setVideoQuestions);
+  const videoQuestions = useGameStore((s) => s.videoQuestions);
 
   const wasConnected = useRef(false);
   useEffect(() => {
@@ -76,12 +80,13 @@ export default function HUD() {
       const { signedUrl, error: apiErr } = await res.json();
       if (apiErr) throw new Error(apiErr);
       setStatus("playing");
+      const videoQs = useGameStore.getState().videoQuestions ?? undefined;
       conv.startSession({
         signedUrl,
         overrides: {
           agent: {
-            prompt: { prompt: buildSystemPrompt(slug) },
-            firstMessage: buildFirstMessage(slug),
+            prompt: { prompt: buildSystemPrompt(slug, videoQs) },
+            firstMessage: buildFirstMessage(slug, videoQs),
           },
         },
       });
@@ -96,6 +101,37 @@ export default function HUD() {
   const stop = () => {
     conv.endSession();
     setStatus("idle");
+  };
+
+  const handleVideoUpload = async (file: File) => {
+    setUploading(true);
+    setUploadError(null);
+    console.log(`[video-upload] starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+    try {
+      const form = new FormData();
+      form.append("video", file);
+      console.log("[video-upload] sending to backend...");
+      const t0 = performance.now();
+      const res = await fetch("http://localhost:8000/api/generate-maze-questions", {
+        method: "POST",
+        body: form,
+      });
+      console.log(`[video-upload] backend responded in ${((performance.now() - t0) / 1000).toFixed(1)}s — status: ${res.status}`);
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        console.error("[video-upload] error response:", detail);
+        throw new Error(detail?.detail ?? `Upload failed: ${res.status}`);
+      }
+      const { questions } = await res.json();
+      console.log(`[video-upload] got ${questions.length} questions:`, questions);
+      setVideoQuestions(questions);
+    } catch (e) {
+      console.error("[video-upload] failed:", e);
+      setUploadError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      console.log("[video-upload] done");
+    }
   };
 
   const dist = Math.abs(pos.x - goal.x) + Math.abs(pos.y - goal.y);
@@ -241,13 +277,76 @@ export default function HUD() {
                 Answer a science question → earn a step → pick an arrow to guide your buddy toward the glowing portal.
               </p>
               <button
-                onClick={start}
-                disabled={starting}
+                onClick={() => {
+                  setVideoQuestions(null);
+                  start();
+                }}
+                disabled={starting || uploading}
                 className="mt-6 border border-amber-500 px-10 py-3 text-[11px] font-bold uppercase tracking-[0.3em] text-amber-400 transition hover:bg-amber-500/10 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-50"
                 style={cinzel}
               >
                 {starting ? "Connecting…" : "Start Adventure"}
               </button>
+
+              <div className="mt-5 border-t border-white/10 pt-5">
+                <p
+                  className="text-[10px] uppercase tracking-[0.2em] text-white/35"
+                  style={cinzel}
+                >
+                  Or upload a video for custom questions
+                </p>
+                {videoQuestions ? (
+                  <div className="mt-3">
+                    <p className="text-xs text-emerald-400">
+                      {videoQuestions.length} questions ready
+                    </p>
+                    <div className="mt-3 flex items-center justify-center gap-3">
+                      <button
+                        onClick={start}
+                        disabled={starting}
+                        className="border border-emerald-500 px-8 py-3 text-[11px] font-bold uppercase tracking-[0.3em] text-emerald-400 transition hover:bg-emerald-500/10 disabled:opacity-50"
+                        style={cinzel}
+                      >
+                        {starting ? "Connecting…" : "Start with Video"}
+                      </button>
+                      <button
+                        onClick={() => setVideoQuestions(null)}
+                        className="border border-white/20 px-4 py-3 text-[10px] uppercase tracking-[0.2em] text-white/40 transition hover:border-white/40 hover:text-white/70"
+                        style={cinzel}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label
+                    className={`mt-3 inline-block cursor-pointer border border-indigo-500/50 px-8 py-3 text-[11px] font-bold uppercase tracking-[0.3em] text-indigo-400 transition hover:bg-indigo-500/10 ${uploading ? "pointer-events-none opacity-50" : ""}`}
+                    style={cinzel}
+                  >
+                    {uploading ? "Generating Questions…" : "Upload Video"}
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleVideoUpload(file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+                {uploadError && (
+                  <div
+                    className="mt-2 border border-rose-400/40 bg-rose-500/10 p-2 text-xs text-rose-200"
+                    style={cinzel}
+                  >
+                    {uploadError}
+                  </div>
+                )}
+              </div>
+
               {error && (
                 <div
                   className="mt-3 border border-rose-400/40 bg-rose-500/10 p-2 text-xs text-rose-200"
@@ -311,8 +410,8 @@ export default function HUD() {
 
       {/* Victory screen */}
       {status === "won" && (
-        <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
-          <div className="center-card border border-amber-500/40 bg-black/80 px-12 py-10 text-center shadow-2xl backdrop-blur-md">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="pointer-events-auto center-card border border-amber-500/40 bg-black/80 px-12 py-10 text-center shadow-2xl backdrop-blur-md">
             <div className="mx-auto flex h-64 w-64 items-center justify-center">
               <Trophy3D />
             </div>

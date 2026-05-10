@@ -74,9 +74,13 @@ type State = {
   // current question — client-driven, deterministic order
   questionIndex: number;
 
+  // video mode — when set, these replace the hardcoded QUESTIONS array
+  videoQuestions: Question[] | null;
+
   // actions
   perception: () => Perception;
   currentQuestion: () => Question;
+  setVideoQuestions: (qs: Question[] | null) => void;
   /** Agent grants the player a step token. Returns the new credit count. */
   grantStep: () => number;
   /** Player spends one step credit to move 1 cell. Returns blocked/no-credit/moved/goal. */
@@ -144,8 +148,14 @@ export const useGameStore = create<State>((set, get) => ({
   voiceMovementEnabled: false,
   stepCredits: 0,
   questionIndex: 0,
+  videoQuestions: null,
 
-  currentQuestion: () => QUESTIONS[get().questionIndex],
+  currentQuestion: () => {
+    const qs = get().videoQuestions ?? QUESTIONS;
+    return qs[Math.min(get().questionIndex, qs.length - 1)];
+  },
+
+  setVideoQuestions: (qs) => set({ videoQuestions: qs }),
 
   perception: () => {
     const { maze, pos, facing } = get();
@@ -165,21 +175,22 @@ export const useGameStore = create<State>((set, get) => ({
   },
 
   grantStep: () => {
-    const { status, awaitingAnswer, stepCredits, questionIndex } = get();
+    const { status, awaitingAnswer, stepCredits, questionIndex, videoQuestions } = get();
     if (status === "won") return stepCredits;
     if (awaitingAnswer) return stepCredits; // already granted; wait for player
+    const qs = videoQuestions ?? QUESTIONS;
     const next = Math.min(MAX_BANKED_STEPS, stepCredits + STEPS_PER_ANSWER);
     set({
       stepCredits: next,
       awaitingAnswer: true,
       bubbleVisible: false,
-      questionIndex: Math.min(QUESTIONS.length - 1, questionIndex + 1),
+      questionIndex: Math.min(qs.length - 1, questionIndex + 1),
     });
     return next;
   },
 
   playerMove: (dir) => {
-    const { maze, pos, facing, status, stepCredits, questionIndex } = get();
+    const { maze, pos, facing, status, stepCredits, questionIndex, videoQuestions } = get();
     if (status === "won" || status === "moving") return "blocked";
     if (stepCredits <= 0) return "no_credit";
     const newFacing = resolveDirection(facing, dir);
@@ -187,11 +198,9 @@ export const useGameStore = create<State>((set, get) => ({
     const next = step(pos, newFacing);
     const reachedGoal = next.x === maze.goal.x && next.y === maze.goal.y;
     const nextCredits = stepCredits - 1;
-    // When the last step is spent (and we didn't reach the goal), preload the
-    // next question on-screen so the player sees it instantly instead of
-    // waiting for the agent's TTS round-trip.
+    const qs = videoQuestions ?? QUESTIONS;
     const isLastStep = nextCredits === 0 && !reachedGoal;
-    const nextQuestion = QUESTIONS[Math.min(QUESTIONS.length - 1, questionIndex)];
+    const nextQuestion = qs[Math.min(qs.length - 1, questionIndex)];
     set({
       pos: next,
       facing: newFacing,
@@ -245,6 +254,7 @@ export const useGameStore = create<State>((set, get) => ({
       awaitingAnswer: false,
       pendingEvaluation: false,
       voiceMovementEnabled: get().voiceMovementEnabled,
+      videoQuestions: get().videoQuestions,
       stepCredits: 0,
       questionIndex: 0,
     });
@@ -296,7 +306,7 @@ export const useGameStore = create<State>((set, get) => ({
           // Advance to the next question. Without this, when the keyword
           // matcher grants the step before moveCharacter fires, grantStep
           // short-circuits on awaitingAnswer and the same question repeats.
-          questionIndex: Math.min(QUESTIONS.length - 1, s.questionIndex + 1),
+          questionIndex: Math.min((s.videoQuestions ?? QUESTIONS).length - 1, s.questionIndex + 1),
           bubbleVariant: "celebration",
           bubbleVisible: false, // grant is silent; D-pad lights up, no overlay
         };

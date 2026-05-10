@@ -19,18 +19,6 @@ type TopicCard = {
 
 const TOPICS: TopicCard[] = [
   {
-    topic: "science",
-    title: "Science",
-    game: "Maze Quest",
-    blurb:
-      "Answer a science question, earn a step, and find your way through the glowing maze.",
-    imageSrc: "/topic-cards/topic-maze.jpg",
-    imageAlt:
-      "Nighttime hedge maze with purple fog and lit paths, matching the Maze Quest scene",
-    accentClass: "text-amber-300",
-    hoverGlow: "hover:shadow-[0_0_48px_rgba(180,140,60,0.25)]",
-  },
-  {
     topic: "math",
     title: "Math",
     game: "Boss Battle",
@@ -44,7 +32,7 @@ const TOPICS: TopicCard[] = [
   },
   {
     topic: "spelling_asl",
-    title: "Spelling & ASL",
+    title: "ASL",
     game: "Word Adventure",
     blurb:
       "Spell words and practice signs along a forest path through every zone.",
@@ -53,6 +41,18 @@ const TOPICS: TopicCard[] = [
       "Sunlit forest trail through green woods like the Word Adventure journey",
     accentClass: "text-amber-200",
     hoverGlow: "hover:shadow-[0_0_48px_rgba(160,130,50,0.25)]",
+  },
+  {
+    topic: "science",
+    title: "Explore",
+    game: "Maze Quest",
+    blurb:
+      "Answer a question, earn a step, and find your way through the glowing maze.",
+    imageSrc: "/topic-cards/topic-maze.jpg",
+    imageAlt:
+      "Nighttime hedge maze with purple fog and lit paths, matching the Maze Quest scene",
+    accentClass: "text-amber-300",
+    hoverGlow: "hover:shadow-[0_0_48px_rgba(180,140,60,0.25)]",
   },
 ];
 

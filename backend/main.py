@@ -316,3 +316,90 @@ async def generate_forest_questions(video: UploadFile = File(...)):
         return {"questions": questions}
     finally:
         os.unlink(tmp_path)
+
+
+OPEN_ENDED_PROMPT = """You are generating quiz questions for a young child (ages 5-10) based on a video transcript.
+
+Generate exactly 8 short, simple questions. Each question must:
+- Be under 10 words
+- Have a clear, short answer (1-3 words)
+- List 2-5 accepted answer keywords/synonyms
+
+Output ONLY valid JSON — no markdown fences, no explanation:
+[
+  {{"text": "What color is the sky?", "accept": ["blue"]}},
+  {{"text": "How many legs does a dog have?", "accept": ["4", "four"]}}
+]
+
+TRANSCRIPT:
+{transcript}"""
+
+
+def _parse_open_ended(raw: str) -> list[dict]:
+    import json as _json
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
+    questions = _json.loads(text)
+    if not isinstance(questions, list):
+        raise ValueError("Expected a JSON array")
+    valid = []
+    for q in questions:
+        if isinstance(q, dict) and "text" in q and "accept" in q and isinstance(q["accept"], list):
+            valid.append({"text": str(q["text"]), "accept": [str(a) for a in q["accept"]]})
+    return valid[:8]
+
+
+@app.post("/api/generate-maze-questions")
+async def generate_maze_questions(video: UploadFile = File(...)):
+    import time
+    from google import genai
+    from faster_whisper import WhisperModel
+
+    t0 = time.time()
+    print(f"[maze-questions] received video: {video.filename} ({video.size} bytes)")
+
+    api_key = os.getenv("HACKDAVIS_GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="HACKDAVIS_GEMINI_API_KEY not set")
+
+    suffix = Path(video.filename or "video.mp4").suffix or ".mp4"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(await video.read())
+        tmp_path = tmp.name
+
+    try:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        compute_type = "float16" if device == "cuda" else "int8"
+        print(f"[maze-questions] loading whisper model (device={device}, compute_type={compute_type})")
+        t1 = time.time()
+        whisper = WhisperModel("tiny", device=device, compute_type=compute_type)
+        print(f"[maze-questions] whisper model loaded in {time.time() - t1:.2f}s")
+
+        t2 = time.time()
+        segments, _ = whisper.transcribe(tmp_path, beam_size=5)
+        transcript = " ".join(s.text.strip() for s in segments)
+        print(f"[maze-questions] transcription done in {time.time() - t2:.2f}s ({len(transcript)} chars)")
+        print(f"[maze-questions] transcript preview: {transcript[:200]}")
+        if not transcript.strip():
+            raise HTTPException(status_code=422, detail="Could not transcribe audio from video")
+
+        client = genai.Client(api_key=api_key)
+        t3 = time.time()
+        print("[maze-questions] sending transcript to Gemini...")
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=OPEN_ENDED_PROMPT.format(transcript=transcript),
+        )
+        print(f"[maze-questions] Gemini responded in {time.time() - t3:.2f}s")
+        print(f"[maze-questions] raw response: {response.text[:500]}")
+
+        questions = _parse_open_ended(response.text)
+        print(f"[maze-questions] parsed {len(questions)} questions")
+        if len(questions) < 8:
+            raise HTTPException(status_code=500, detail=f"Could only parse {len(questions)} questions from Gemini response, need 8")
+
+        print(f"[maze-questions] total time: {time.time() - t0:.2f}s")
+        return {"questions": questions}
+    finally:
+        os.unlink(tmp_path)

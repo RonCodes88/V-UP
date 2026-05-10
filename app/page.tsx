@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { FaHandPeace, FaCalculator, FaCompass } from "react-icons/fa";
+import { FiSettings, FiMusic, FiStar } from "react-icons/fi";
 
 function SpinArrow({ className }: { className?: string }) {
   const [spinning, setSpinning] = useState(false);
@@ -60,8 +62,8 @@ export default function Home() {
           {[
             { label: "Home", href: "/" },
             { label: "Math", href: "/select-topic" },
-            { label: "Spelling", href: "/select-topic" },
-            { label: "Sign Language", href: "/select-topic" },
+            { label: "ASL", href: "/select-topic" },
+            { label: "Explore", href: "/select-topic" },
           ].map(({ label, href }) => (
             <Link
               key={label}
@@ -83,17 +85,17 @@ export default function Home() {
 
         {/* Right icons */}
         <div className="flex items-center gap-3 text-white/50">
-          <span className="cursor-pointer text-sm transition hover:text-white">⚙</span>
-          <span className="cursor-pointer text-sm transition hover:text-white">◈</span>
+          <span className="cursor-pointer text-sm transition hover:text-white"><FiSettings /></span>
+          <span className="cursor-pointer text-sm transition hover:text-white"><FiStar /></span>
         </div>
       </nav>
 
       {/* ── Fixed left sidebar ── */}
       <div className="fixed left-0 top-1/2 z-20 -translate-y-1/2 flex flex-col items-center gap-5 border-r border-white/8 bg-black/40 px-3 py-5 backdrop-blur-sm">
         {[
-          { icon: "⚔️", label: "Math" },
-          { icon: "📖", label: "Spelling" },
-          { icon: "🤟", label: "Sign" },
+          { icon: <FaCalculator />, label: "Math" },
+          { icon: <FaHandPeace />, label: "ASL" },
+          { icon: <FaCompass />, label: "Explore" },
         ].map(({ icon, label }) => (
           <Link
             key={label}
@@ -123,7 +125,7 @@ export default function Home() {
           className="mt-5 max-w-2xl text-base font-normal uppercase tracking-[0.18em] leading-relaxed text-white/55"
           style={{ fontFamily: "var(--font-cinzel), serif" }}
         >
-          Voice-powered learning worlds built for every kind of learner. Talk to your AI buddy, play, and grow — no reading required.
+          Voice-powered learning worlds for social good—supporting neurodivergent kids (ADHD, autism, dyslexia), kids with limb differences, and Deaf ASL learners. Talk to your buddy, play, and grow.
         </p>
 
         {/* CTA buttons */}
@@ -146,9 +148,9 @@ export default function Home() {
 
         {/* Subject tags */}
         <div className="mt-16 flex flex-wrap items-center justify-center gap-3">
-          <Tag emoji="⚔️" label="Math" />
-          <Tag emoji="📖" label="Spelling" />
-          <Tag emoji="🤟" label="Sign Language" />
+          <Tag icon={<FaCalculator />} label="Math" />
+          <Tag icon={<FaHandPeace />} label="ASL" />
+          <Tag icon={<FaCompass />} label="Explore" />
         </div>
       </div>
 
@@ -165,20 +167,20 @@ export default function Home() {
           className="flex h-8 w-8 items-center justify-center border border-white/20 bg-black/50 text-white/50 backdrop-blur-md transition hover:text-white/90"
           aria-label="Sound"
         >
-          ♪
+          <FiMusic />
         </button>
       </div>
     </main>
   );
 }
 
-function Tag({ emoji, label }: { emoji: string; label: string }) {
+function Tag({ icon, label }: { icon: ReactNode; label: string }) {
   return (
     <span
-      className="border border-white/12 bg-white/4 px-6 py-2 text-sm uppercase tracking-[0.2em] text-white/45 backdrop-blur-md"
+      className="flex items-center gap-2 border border-white/12 bg-white/4 px-6 py-2 text-sm uppercase tracking-[0.2em] text-white/45 backdrop-blur-md"
       style={{ fontFamily: "var(--font-cinzel), serif" }}
     >
-      {emoji} {label}
+      {icon} {label}
     </span>
   );
 }
