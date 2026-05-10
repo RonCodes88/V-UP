@@ -3,6 +3,7 @@
 import { ConversationProvider } from "@elevenlabs/react";
 import { useBossStore } from "@/app/lib/bossStore";
 import BossAgentBridge from "./BossAgentBridge";
+import BossArena3D from "./BossArena3D";
 import BossHUD from "./BossHUD";
 
 export default function BossGame() {
@@ -40,12 +41,7 @@ export default function BossGame() {
             "linear-gradient(to bottom, #1a0512, #2a0822 40%, #0a0318)",
         }}
       >
-        {/* Ambient glow blobs */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-rose-700/20 blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 h-80 w-80 rounded-full bg-red-600/15 blur-3xl" />
-          <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-700/10 blur-3xl" />
-        </div>
+        <BossArena3D />
 
         <BossAgentBridge />
         <BossHUD />
