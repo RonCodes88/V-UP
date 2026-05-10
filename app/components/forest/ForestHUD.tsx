@@ -3,7 +3,7 @@
 import { useConversation } from "@elevenlabs/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
+import { FaMicrophone, FaMicrophoneSlash, FaKey, FaLeaf, FaHandPaper, FaArrowUp, FaTrophy, FaTree } from "react-icons/fa";
 import { useForestStore } from "@/app/lib/forestStore";
 import { useHubStore } from "@/app/lib/hubStore";
 import { buildForestFirstMessage, FOREST_SYSTEM_PROMPT } from "@/app/lib/forestAgentPersona";
@@ -111,7 +111,7 @@ export default function ForestHUD() {
     status === "idle"    ? "Tap start" :
     !connected           ? "Connecting…" :
     status === "walking" ? "Walking…" :
-    hasCredit            ? "Press ↑ to walk!" :
+    hasCredit            ? "Press up to walk!" :
     muted                ? "Mic off" :
     isSpeaking           ? "Finn is talking" :
     "Listening";
@@ -145,8 +145,12 @@ export default function ForestHUD() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            <Pill highlight={keys > 0}>🗝️ {keys}/3 keys</Pill>
-            <Pill>🌿 Fork {Math.min(nodeIndex + 1, 3)}/3</Pill>
+            <Pill highlight={keys > 0}>
+              <span className="inline-flex items-center gap-1.5"><FaKey /> {keys}/3 keys</span>
+            </Pill>
+            <Pill>
+              <span className="inline-flex items-center gap-1.5"><FaLeaf /> Step {Math.min(nodeIndex + 1, 3)}/3</span>
+            </Pill>
             <Pill highlight={hasCredit} pulse={hasCredit}>
               {connected && (
                 <span className={`mr-1 inline-block h-2 w-2 rounded-full ${muted ? "bg-rose-400" : isSpeaking ? "bg-emerald-400 listening-glow" : "bg-emerald-300"}`} />
@@ -238,7 +242,10 @@ export default function ForestHUD() {
                     }`}
                     style={{ fontFamily: "var(--font-cinzel), serif" }}
                   >
-                    {signingMode ? "✋ Signing" : "✋ Sign"}
+                    <span className="inline-flex items-center gap-2">
+                      <FaHandPaper />
+                      {signingMode ? "Signing" : "Sign"}
+                    </span>
                   </button>
                   <button
                     onClick={stop}
@@ -251,7 +258,7 @@ export default function ForestHUD() {
               )}
 
               <div className="mt-2 text-center text-xs text-white/50 font-medium" style={{ fontFamily: "var(--font-cinzel), serif" }}>
-                {signingMode ? "✋ Space = add letter · Enter = submit word" : '🎤 Say "A", "B", "C", or "D" — on-screen choices are display-only'}
+                {signingMode ? "Space = add letter · Enter = submit word" : 'Say "A", "B", "C", or "D" — on-screen choices are display-only'}
               </div>
             </div>
           </div>
@@ -261,17 +268,17 @@ export default function ForestHUD() {
         {showKeyEarned && (
           <div className="pointer-events-none absolute left-1/2 top-1/2 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 px-6 text-center">
             <div className="center-card border border-amber-500/40 bg-black/70 px-6 py-6 shadow-2xl backdrop-blur-md">
-              <div className="text-4xl">✨🗝️</div>
+              <div className="flex justify-center text-4xl text-amber-300"><FaKey /></div>
               <div
                 className="mt-2 text-2xl font-bold uppercase tracking-[0.15em] text-amber-300"
                 style={{ fontFamily: "var(--font-cinzel), serif" }}
               >
                 Key earned!
               </div>
-              <div className="mt-3 text-base font-semibold text-white/75">Press ↑ to walk forward</div>
+              <div className="mt-3 text-base font-semibold text-white/75">Press up to walk forward</div>
               <div className="mt-3 flex items-center justify-center">
-                <div className="flex h-14 w-14 items-center justify-center border border-amber-500 bg-amber-500/10 text-2xl font-black text-amber-300 shadow-xl listening-glow">
-                  ↑
+                <div className="flex h-14 w-14 items-center justify-center border border-amber-500 bg-amber-500/10 text-2xl text-amber-300 shadow-xl listening-glow">
+                  <FaArrowUp />
                 </div>
               </div>
             </div>
@@ -293,7 +300,7 @@ export default function ForestHUD() {
         {status === "idle" && (
           <div className="pointer-events-auto absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-6 text-center">
             <div className="center-card border border-amber-500/30 bg-black/75 p-7 shadow-2xl backdrop-blur-md">
-              <div className="text-5xl">🌲✨</div>
+              <div className="flex justify-center text-5xl text-emerald-400"><FaTree /></div>
               <div
                 className="mt-4 text-2xl font-black uppercase tracking-[0.2em] text-white"
                 style={{
@@ -334,7 +341,9 @@ export default function ForestHUD() {
       {status === "won" && (
         <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
           <div className="center-card border border-amber-400/40 bg-black/80 px-10 py-8 text-center shadow-2xl backdrop-blur-md max-w-md">
-            <div className="text-6xl">{keys >= 3 ? "🏆" : keys >= 2 ? "🗝️" : "🌲"}</div>
+            <div className="flex justify-center text-6xl text-amber-300">
+              {keys >= 3 ? <FaTrophy /> : keys >= 2 ? <FaKey /> : <FaTree />}
+            </div>
             <div
               className="mt-4 text-3xl font-extrabold uppercase tracking-[0.15em] text-amber-300"
               style={{
@@ -347,7 +356,7 @@ export default function ForestHUD() {
             <div className="mt-2 text-base text-white/80">{lastAgentMessage}</div>
             <div className="mt-4 flex justify-center gap-1">
               {Array.from({ length: 3 }, (_, i) => (
-                <span key={i} className={`text-xl ${i < keys ? "opacity-100" : "opacity-20"}`}>🗝️</span>
+                <FaKey key={i} className={`text-xl text-amber-300 ${i < keys ? "opacity-100" : "opacity-20"}`} />
               ))}
             </div>
             <div className="mt-2 text-sm tracking-[0.1em] text-white/55">{keys}/3 Knowledge Keys collected</div>
