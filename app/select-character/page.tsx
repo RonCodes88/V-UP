@@ -8,9 +8,9 @@ import { CHARACTER_LIST, type CharacterSlug } from "@/app/lib/characters";
 import { TOPIC_TO_ROUTE, useHubStore, type Topic } from "@/app/lib/hubStore";
 
 const TOPIC_LABEL: Record<Topic, string> = {
-  science: "Science",
+  science: "Explore",
   math: "Math",
-  spelling_asl: "Spelling & ASL",
+  spelling_asl: "ASL",
 };
 
 const CHARACTER_BLURB: Record<CharacterSlug, string> = {

@@ -61,9 +61,11 @@ export default function AgentBridge() {
     const p = useGameStore.getState().perception();
     if (p.atGoal) return; // celebrateWin will fire from the agent side
     const q = useGameStore.getState().currentQuestion();
-    conv.sendUserMessage(
-      `Speak this verbatim, with no preamble or additions: "${q.text}"`,
-    );
+    const isVideo = useGameStore.getState().videoQuestions !== null;
+    const msg = isVideo
+      ? `Speak this verbatim, with no preamble or additions: "${q.text}" [ACCEPT: ${q.accept.join(", ")}]`
+      : `Speak this verbatim, with no preamble or additions: "${q.text}"`;
+    conv.sendUserMessage(msg);
   }, [stepCredits, conv]);
 
   return null;
