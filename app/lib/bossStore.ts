@@ -16,7 +16,7 @@ export type DamageEvent = {
 };
 
 const MAX_HP = 100;
-const DEFAULT_DAMAGE = 25;
+const DEFAULT_DAMAGE = 34;
 
 const BOSS_CORRECT_PATTERNS = [
   /\bcorrect!/i,
@@ -148,7 +148,7 @@ export const useBossStore = create<State>((set, get) => ({
   getBattleState: () => {
     const { playerHP, bossHP, turn, correctAnswers } = get();
     const tier =
-      correctAnswers < 3 ? 1 : correctAnswers < 6 ? 2 : correctAnswers < 9 ? 3 : 4;
+      correctAnswers < 2 ? 1 : correctAnswers < 4 ? 2 : correctAnswers < 6 ? 3 : 4;
     return `Player HP: ${playerHP}/${MAX_HP}. Boss HP: ${bossHP}/${MAX_HP}. Turn: ${turn}. Correct: ${correctAnswers}. Difficulty tier: ${tier}.`;
   },
 

@@ -4,7 +4,8 @@ import { ConversationProvider } from "@elevenlabs/react";
 import { Canvas } from "@react-three/fiber";
 import { Environment, Sparkles } from "@react-three/drei";
 import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import type { Direction } from "@/app/lib/maze";
 import { useGameStore } from "@/app/lib/gameStore";
 import AgentBridge from "./game/AgentBridge";
 import CameraRig from "./game/CameraRig";
@@ -14,12 +15,34 @@ import HUD from "./game/HUD";
 import KeyboardDevControls from "./game/KeyboardDevControls";
 import Maze from "./game/Maze";
 
+const DIRECTION_KEYWORDS: [RegExp, Direction][] = [
+  [/\bforward\b/, "forward"],
+  [/\bstraight\b/, "forward"],
+  [/\bahead\b/, "forward"],
+  [/\bback\b/, "back"],
+  [/\bbackward\b/, "back"],
+  [/\bbehind\b/, "back"],
+  [/\bleft\b/, "left"],
+  [/\bright\b/, "right"],
+];
+
+function extractDirection(transcript: string): Direction | null {
+  const lower = transcript.toLowerCase();
+  for (const [re, dir] of DIRECTION_KEYWORDS) {
+    if (re.test(lower)) return dir;
+  }
+  return null;
+}
+
 export default function MazeGame() {
+  const reset = useGameStore((s) => s.reset);
   const appendTranscript = useGameStore((s) => s.appendTranscript);
   const setError = useGameStore((s) => s.setError);
   const setStatus = useGameStore((s) => s.setStatus);
   const setAgentMessage = useGameStore((s) => s.setAgentMessage);
   const onUserSpoke = useGameStore((s) => s.onUserSpoke);
+
+  useEffect(() => { reset(); }, [reset]);
 
   return (
     <ConversationProvider
@@ -41,7 +64,15 @@ export default function MazeGame() {
         if (role === "ai") {
           setAgentMessage(message);
         } else {
-          onUserSpoke();
+          if (message.startsWith("Speak this verbatim")) return;
+          const state = useGameStore.getState();
+          const hasCredits = state.stepCredits > 0;
+          const dir = state.voiceMovementEnabled ? extractDirection(message) : null;
+          if (hasCredits && dir) {
+            state.playerMove(dir);
+          } else if (!hasCredits) {
+            onUserSpoke();
+          }
         }
       }}
     >

@@ -1,10 +1,9 @@
 "use client";
 
-import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
-import { useGameStore, type BubbleVariant } from "@/app/lib/gameStore";
+import { useGameStore } from "@/app/lib/gameStore";
 import type { Facing } from "@/app/lib/maze";
 import { cellToWorld } from "./Maze";
 
@@ -32,10 +31,6 @@ export default function Character() {
   const facing = useGameStore((s) => s.facing);
   const status = useGameStore((s) => s.status);
   const finishMove = useGameStore((s) => s.finishMove);
-  const bubbleText = useGameStore((s) => s.lastAgentMessage);
-  const bubbleVariant = useGameStore((s) => s.bubbleVariant);
-  const bubbleKey = useGameStore((s) => s.bubbleKey);
-  const bubbleVisible = useGameStore((s) => s.bubbleVisible);
 
   // Tween targets.
   const target = useRef({
@@ -131,17 +126,6 @@ export default function Character() {
 
   return (
     <group ref={group}>
-      {bubbleVisible && (
-        <Html
-          position={[0, 1.85, 0]}
-          center
-          distanceFactor={5}
-          zIndexRange={[100, 0]}
-          wrapperClass="bear-bubble-wrap"
-        >
-          <SpeechBubble text={bubbleText} variant={bubbleVariant} bubbleKey={bubbleKey} />
-        </Html>
-      )}
       <group ref={body} position={[0, 0.55, 0]}>
         {/* Body */}
         <mesh castShadow position={[0, 0, 0]}>
@@ -237,45 +221,4 @@ function nearestYaw(current: number, target: number) {
   let diff = ((target - current) % TAU + TAU) % TAU;
   if (diff > Math.PI) diff -= TAU;
   return current + diff;
-}
-
-const VARIANT_STYLES: Record<
-  BubbleVariant,
-  { bg: string; ring: string; emoji: string }
-> = {
-  intro: { bg: "bg-white", ring: "ring-indigo-200", emoji: "👋" },
-  question: { bg: "bg-white", ring: "ring-indigo-200", emoji: "🤔" },
-  encouragement: { bg: "bg-amber-50", ring: "ring-amber-200", emoji: "💛" },
-  celebration: { bg: "bg-emerald-50", ring: "ring-emerald-200", emoji: "✨" },
-  victory: { bg: "bg-yellow-50", ring: "ring-yellow-300", emoji: "🏆" },
-};
-
-function SpeechBubble({
-  text,
-  variant,
-  bubbleKey,
-}: {
-  text: string;
-  variant: BubbleVariant;
-  bubbleKey: number;
-}) {
-  const style = VARIANT_STYLES[variant];
-  const truncated = text.length > 110 ? `${text.slice(0, 108).trim()}…` : text;
-  return (
-    <div
-      key={bubbleKey}
-      className="bear-bubble-pop pointer-events-none select-none"
-      style={{ width: 240, transformOrigin: "50% 100%" }}
-    >
-      <div
-        className={`relative rounded-2xl px-3 py-2 text-center text-[13px] font-semibold leading-snug text-slate-800 shadow-2xl ring-2 ${style.bg} ${style.ring}`}
-      >
-        <span className="mr-1">{style.emoji}</span>
-        {truncated}
-        <div
-          className={`absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 ${style.bg}`}
-        />
-      </div>
-    </div>
-  );
 }

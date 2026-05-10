@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { ConversationProvider } from "@elevenlabs/react";
 import { useForestStore } from "@/app/lib/forestStore";
 import ForestAgentBridge from "./ForestAgentBridge";
@@ -8,10 +9,13 @@ import ForestHUD from "./ForestHUD";
 import ASLSigningOverlay from "./ASLSigningOverlay";
 
 export default function ForestGame() {
+  const resetForest = useForestStore((s) => s.reset);
   const setError = useForestStore((s) => s.setError);
   const setStatus = useForestStore((s) => s.setStatus);
   const setAgentMessage = useForestStore((s) => s.setAgentMessage);
   const onUserSpoke = useForestStore((s) => s.onUserSpoke);
+
+  useEffect(() => { resetForest(); }, [resetForest]);
 
   return (
     <ConversationProvider
