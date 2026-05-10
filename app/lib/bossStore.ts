@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { MATH_QUESTIONS, type MathQuestion } from "./mathQuestions";
 
 export type BattleStatus = "idle" | "battling" | "victory" | "defeat";
 
@@ -31,7 +32,16 @@ type State = {
   playerHitKey: number;
   damageEvents: DamageEvent[];
 
+  // whiteboard / Gemini grading
+  whiteboardOpen: boolean;
+  submitting: boolean;
+  verdict: "correct" | "incorrect" | null;
+  verdictNote: string;
+  annotatedImage: string | null;
+  questionIndex: number;
+
   // actions
+  currentQuestion: () => MathQuestion;
   dealDamageToBoss: (amount?: number) => string;
   dealDamageToPlayer: (amount?: number) => string;
   getBattleState: () => string;
@@ -43,6 +53,18 @@ type State = {
   setStatus: (s: BattleStatus) => void;
   setAgentMessage: (text: string) => void;
   dismissDamageEvent: (id: number) => void;
+
+  // whiteboard actions
+  openWhiteboard: () => void;
+  closeWhiteboard: () => void;
+  setSubmitting: (b: boolean) => void;
+  setVerdict: (
+    verdict: "correct" | "incorrect",
+    note: string,
+    annotatedImage: string | null,
+  ) => void;
+  clearVerdict: () => void;
+  advanceQuestion: () => void;
 };
 
 export const useBossStore = create<State>((set, get) => ({
@@ -58,6 +80,15 @@ export const useBossStore = create<State>((set, get) => ({
   bossHitKey: 0,
   playerHitKey: 0,
   damageEvents: [],
+  whiteboardOpen: false,
+  submitting: false,
+  verdict: null,
+  verdictNote: "",
+  annotatedImage: null,
+  questionIndex: 0,
+
+  currentQuestion: () =>
+    MATH_QUESTIONS[get().questionIndex % MATH_QUESTIONS.length],
 
   dealDamageToBoss: (amount = DEFAULT_DAMAGE) => {
     const s = get();
@@ -114,6 +145,12 @@ export const useBossStore = create<State>((set, get) => ({
       bossHitKey: 0,
       playerHitKey: 0,
       damageEvents: [],
+      whiteboardOpen: false,
+      submitting: false,
+      verdict: null,
+      verdictNote: "",
+      annotatedImage: null,
+      questionIndex: 0,
     }),
 
   appendTranscript: (m) => set((s) => ({ transcript: [...s.transcript, m] })),
@@ -189,4 +226,27 @@ export const useBossStore = create<State>((set, get) => ({
   },
   dismissDamageEvent: (id) =>
     set((s) => ({ damageEvents: s.damageEvents.filter((e) => e.id !== id) })),
+
+  openWhiteboard: () =>
+    set({
+      whiteboardOpen: true,
+      verdict: null,
+      verdictNote: "",
+      annotatedImage: null,
+    }),
+  closeWhiteboard: () =>
+    set({
+      whiteboardOpen: false,
+      submitting: false,
+      verdict: null,
+      verdictNote: "",
+      annotatedImage: null,
+    }),
+  setSubmitting: (b) => set({ submitting: b }),
+  setVerdict: (verdict, note, annotatedImage) =>
+    set({ verdict, verdictNote: note, annotatedImage, submitting: false }),
+  clearVerdict: () =>
+    set({ verdict: null, verdictNote: "", annotatedImage: null }),
+  advanceQuestion: () =>
+    set((s) => ({ questionIndex: s.questionIndex + 1 })),
 }));

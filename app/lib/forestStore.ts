@@ -25,7 +25,6 @@ type ForestState = {
   finishWalk: () => void;
   celebrateWin: () => void;
   setAgentMessage: (text: string) => void;
-  onUserSpoke: () => void;
   setError: (e: string | null) => void;
   setStatus: (s: ForestStatus) => void;
   setSigningMode: (v: boolean) => void;
@@ -54,36 +53,32 @@ export const useForestStore = create<ForestState>((set, get) => ({
       status: "answering",
       currentQuestion: QUESTIONS[0],
       lastAnswer: null,
-      lastAgentMessage: "Here comes your first question!",
+      lastAgentMessage: QUESTIONS[0].question,
       bubbleVariant: "question",
       bubbleKey: get().bubbleKey + 1,
       awaitingMove: false,
-      pendingEvaluation: false,
-      questionReady: false,
       error: null,
     }),
 
   submitAnswer: (letter) => {
-    const { nodeIndex, keys, currentQuestion, status, awaitingMove } = get();
+    const { currentQuestion, keys, status } = get();
     if (status === "won") return "wrong";
     const isCorrect = letter === currentQuestion.answer;
     if (isCorrect) {
       set({
-        keys: awaitingMove ? keys : keys + 1,
+        keys: keys + 1,
         lastAnswer: "correct",
         awaitingMove: true,
-        pendingEvaluation: false,
         bubbleVariant: "correct",
         bubbleKey: get().bubbleKey + 1,
-        lastAgentMessage: "You earned a Knowledge Key! Walk down the path.",
+        lastAgentMessage: "You earned a Knowledge Key! Click the arrow to continue.",
       });
     } else {
       set({
         lastAnswer: "wrong",
-        pendingEvaluation: false,
         bubbleVariant: "wrong",
         bubbleKey: get().bubbleKey + 1,
-        lastAgentMessage: `Not quite — ${QUESTIONS[nodeIndex].hint}`,
+        lastAgentMessage: `Not quite — ${currentQuestion.hint}`,
       });
     }
     return isCorrect ? "correct" : "wrong";
@@ -97,10 +92,8 @@ export const useForestStore = create<ForestState>((set, get) => ({
       nodeIndex: next,
       status: "walking",
       awaitingMove: false,
-      questionReady: false,
-      pendingEvaluation: false,
       lastAnswer: null,
-      lastAgentMessage: isLast ? "Almost there — the treasure awaits!" : "Great! Walking to the next fork…",
+      lastAgentMessage: isLast ? "Almost there — the treasure awaits!" : "Walking to the next fork…",
       bubbleVariant: "correct",
       bubbleKey: get().bubbleKey + 1,
     });
@@ -109,20 +102,18 @@ export const useForestStore = create<ForestState>((set, get) => ({
   finishWalk: () => {
     const { nodeIndex, status } = get();
     if (status !== "walking") return;
-    const isLast = nodeIndex >= QUESTIONS.length;
-    if (isLast) {
+    if (nodeIndex >= QUESTIONS.length) {
       get().celebrateWin();
     } else {
+      const q = QUESTIONS[nodeIndex];
       set({
         status: "answering",
-        currentQuestion: QUESTIONS[nodeIndex],
+        currentQuestion: q,
         lastAnswer: null,
         awaitingMove: false,
-        questionReady: false,
-        pendingEvaluation: false,
         bubbleVariant: "question",
         bubbleKey: get().bubbleKey + 1,
-        lastAgentMessage: "Here comes the next question!",
+        lastAgentMessage: q.question,
       });
     }
   },
@@ -191,7 +182,6 @@ export const useForestStore = create<ForestState>((set, get) => ({
   },
 
   setError: (e) => set({ error: e }),
-
   setStatus: (s) => set({ status: s }),
 
   setSigningMode: (v) => set({ signingMode: v }),
@@ -213,39 +203,3 @@ export const useForestStore = create<ForestState>((set, get) => ({
       error: null,
     }),
 }));
-
-const POSITIVE_PATTERNS = [
-  /\bthat'?s right\b/,
-  /\bcorrect\b/,
-  /\bwell done\b/,
-  /\bgreat job\b/,
-  /\bgood job\b/,
-  /\bperfect\b/,
-  /\bexcellent\b/,
-  /\bwonderful\b/,
-  /\bamazing\b/,
-  /\bawesome\b/,
-  /\byou got it\b/,
-  /\byes[,!]?\s/,
-  /^yes[.!,]?$/,
-];
-
-const NEGATIVE_PATTERNS = [
-  /\bnot quite\b/,
-  /\balmost\b/,
-  /\btry again\b/,
-  /\blet'?s try\b/,
-  /\bgood try\b/,
-  /\bnot exactly\b/,
-  /\boops\b/,
-  /\bhint\b/,
-];
-
-function inferBubbleVariant(text: string, state: ForestState): ForestBubbleVariant {
-  if (state.status === "won") return "victory";
-  const t = text.toLowerCase();
-  if (POSITIVE_PATTERNS.some((re) => re.test(t))) return "correct";
-  if (NEGATIVE_PATTERNS.some((re) => re.test(t))) return "wrong";
-  if (t.includes("?")) return "question";
-  return "question";
-}

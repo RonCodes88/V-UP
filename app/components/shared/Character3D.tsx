@@ -6,10 +6,11 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
 import { useGameStore, type BubbleVariant } from "@/app/lib/gameStore";
 import { useHubStore } from "@/app/lib/hubStore";
-import { CHARACTERS, type CharacterSlug } from "@/app/lib/characters";
+import { type CharacterSlug } from "@/app/lib/characters";
 import type { Facing } from "@/app/lib/maze";
 import { cellToWorld } from "../game/Maze";
 import Character from "../game/Character";
+import CatModel from "./CatModel";
 
 const FACING_YAW: Record<Facing, number> = {
   e: Math.PI / 2,
@@ -140,7 +141,7 @@ function GenericCharacter({ slug }: { slug: CharacterSlug }) {
 function CharacterVisual({ slug }: { slug: CharacterSlug }) {
   if (slug === "fox") return <FoxModel />;
   if (slug === "robot") return <RobotModel />;
-  return <CatPrimitive />;
+  return <CatModel />;
 }
 
 function FoxModel() {
@@ -166,45 +167,6 @@ function FoxModel() {
 function RobotModel() {
   const { scene } = useGLTF("/models/RobotExpressive.glb");
   return <primitive object={scene} scale={0.45} position={[0, -0.55, 0]} />;
-}
-
-function CatPrimitive() {
-  const color = CHARACTERS.cat.color;
-  const dark = "#a8924a";
-  return (
-    <group>
-      <mesh castShadow position={[0, 0, 0]}>
-        <sphereGeometry args={[0.32, 24, 24]} />
-        <meshStandardMaterial color={color} roughness={0.7} />
-      </mesh>
-      <group position={[0, 0.42, 0.05]}>
-        <mesh castShadow>
-          <sphereGeometry args={[0.27, 24, 24]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[-0.16, 0.22, -0.02]}>
-          <coneGeometry args={[0.08, 0.18, 8]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[0.16, 0.22, -0.02]}>
-          <coneGeometry args={[0.08, 0.18, 8]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[-0.1, 0.05, 0.24]}>
-          <sphereGeometry args={[0.04, 12, 12]} />
-          <meshStandardMaterial color="#0a0a0a" />
-        </mesh>
-        <mesh position={[0.1, 0.05, 0.24]}>
-          <sphereGeometry args={[0.04, 12, 12]} />
-          <meshStandardMaterial color="#0a0a0a" />
-        </mesh>
-        <mesh position={[0, -0.04, 0.27]}>
-          <sphereGeometry args={[0.035, 12, 12]} />
-          <meshStandardMaterial color={dark} />
-        </mesh>
-      </group>
-    </group>
-  );
 }
 
 useGLTF.preload("/models/Fox.glb");

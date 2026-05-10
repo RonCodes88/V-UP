@@ -2,7 +2,6 @@
 
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import { useForestStore } from "@/app/lib/forestStore";
 import { NODE_POSITIONS } from "./ForestPath";
@@ -11,11 +10,8 @@ export default function PathArrow() {
   const awaitingMove = useForestStore((s) => s.awaitingMove);
   const nodeIndex = useForestStore((s) => s.nodeIndex);
   const status = useForestStore((s) => s.status);
-  const advanceNode = useForestStore((s) => s.advanceNode);
-
   const arrowRef = useRef<THREE.Group>(null!);
   const glowRef = useRef<THREE.PointLight>(null!);
-  const hovered = useRef(false);
 
   // Place arrow halfway between current node and next node
   const current = NODE_POSITIONS[Math.min(nodeIndex, NODE_POSITIONS.length - 1)];
@@ -36,16 +32,9 @@ export default function PathArrow() {
     arrowRef.current.position.y = 0.5 + Math.sin(t * 2.5) * 0.12;
     // Pulse glow
     if (glowRef.current) {
-      glowRef.current.intensity = hovered.current
-        ? 4 + Math.sin(t * 6) * 1
-        : 2 + Math.sin(t * 3) * 0.6;
+      glowRef.current.intensity = 2 + Math.sin(t * 3) * 0.6;
     }
-    // Gentle spin on hover
-    if (hovered.current) {
-      arrowRef.current.rotation.y += 0.03;
-    } else {
-      arrowRef.current.rotation.y = yaw;
-    }
+    arrowRef.current.rotation.y = yaw;
   });
 
   if (!awaitingMove || status === "walking" || status === "won") return null;
@@ -54,22 +43,7 @@ export default function PathArrow() {
     <group position={[mx, 0, mz]}>
       <pointLight ref={glowRef} color="#00ff88" intensity={2} distance={5} decay={2} />
 
-      <group
-        ref={arrowRef}
-        rotation={[0, yaw, 0]}
-        onClick={(e) => {
-          e.stopPropagation();
-          advanceNode();
-        }}
-        onPointerOver={() => {
-          hovered.current = true;
-          document.body.style.cursor = "pointer";
-        }}
-        onPointerOut={() => {
-          hovered.current = false;
-          document.body.style.cursor = "auto";
-        }}
-      >
+      <group ref={arrowRef} rotation={[0, yaw, 0]}>
         {/* Arrow shaft */}
         <mesh castShadow position={[0, 0, 0.1]}>
           <boxGeometry args={[0.18, 0.18, 0.7]} />
@@ -108,15 +82,6 @@ export default function PathArrow() {
         </mesh>
       </group>
 
-      {/* HTML label above arrow */}
-      <Html position={[0, 1.4, 0]} center distanceFactor={6} zIndexRange={[50, 0]}>
-        <div
-          className="pointer-events-none select-none rounded-full border border-emerald-300/60 bg-emerald-900/80 px-3 py-1 text-xs font-bold text-emerald-200 shadow-lg backdrop-blur-sm"
-          style={{ whiteSpace: "nowrap" }}
-        >
-          Click to walk →
-        </div>
-      </Html>
     </group>
   );
 }

@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { useForestStore, type ForestBubbleVariant } from "@/app/lib/forestStore";
 import { useHubStore } from "@/app/lib/hubStore";
 import { CHARACTERS, type CharacterSlug } from "@/app/lib/characters";
+import CatModel from "@/app/components/shared/CatModel";
 import { NODE_POSITIONS } from "./ForestPath";
 
 const MOVE_DURATION = 0.8;
@@ -129,7 +130,7 @@ export default function ForestCharacter() {
 function CharacterVisual({ slug }: { slug: CharacterSlug | null }) {
   if (slug === "fox") return <FoxModel />;
   if (slug === "robot") return <RobotModel />;
-  if (slug === "cat") return <CatPrimitive />;
+  if (slug === "cat") return <CatModel />;
   return <BearPrimitive />;
 }
 
@@ -175,40 +176,6 @@ function BearPrimitive() {
         <mesh position={[0, -0.06, 0.25]}>
           <sphereGeometry args={[0.035, 12, 12]} />
           <meshStandardMaterial color="#3a1a0a" />
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
-function CatPrimitive() {
-  const color = CHARACTERS.cat.color;
-  return (
-    <group>
-      <mesh castShadow position={[0, 0, 0]}>
-        <sphereGeometry args={[0.32, 24, 24]} />
-        <meshStandardMaterial color={color} roughness={0.7} />
-      </mesh>
-      <group position={[0, 0.42, 0.05]}>
-        <mesh castShadow>
-          <sphereGeometry args={[0.27, 24, 24]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[-0.16, 0.22, -0.02]}>
-          <coneGeometry args={[0.08, 0.18, 8]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[0.16, 0.22, -0.02]}>
-          <coneGeometry args={[0.08, 0.18, 8]} />
-          <meshStandardMaterial color={color} roughness={0.7} />
-        </mesh>
-        <mesh position={[-0.1, 0.05, 0.24]}>
-          <sphereGeometry args={[0.04, 12, 12]} />
-          <meshStandardMaterial color="#0a0a0a" />
-        </mesh>
-        <mesh position={[0.1, 0.05, 0.24]}>
-          <sphereGeometry args={[0.04, 12, 12]} />
-          <meshStandardMaterial color="#0a0a0a" />
         </mesh>
       </group>
     </group>
