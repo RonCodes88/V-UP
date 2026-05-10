@@ -13,7 +13,6 @@ function formatQuestion(idx: number): string {
 export default function ForestAgentBridge() {
   const conv = useConversation();
   const status = useForestStore((s) => s.status);
-  const nodeIndex = useForestStore((s) => s.nodeIndex);
   const prevStatus = useRef(status);
 
   useConversationClientTool("submitAnswer", (params: Record<string, unknown>) => {
@@ -22,12 +21,16 @@ export default function ForestAgentBridge() {
     if (!["A", "B", "C", "D"].includes(upper)) {
       return "invalid_letter; please use A, B, C, or D";
     }
-    return useForestStore.getState().submitAnswer(upper);
+    const result = useForestStore.getState().submitAnswer(upper);
+    if (result === "correct") {
+      return "correct. Say ONE short affirmation then STOP. Do NOT say anything else. Do NOT read the next question. Stay silent until the SYSTEM gives you the next question text.";
+    }
+    return result;
   });
 
   useConversationClientTool("getGameState", () => {
-    const { nodeIndex: idx, keys } = useForestStore.getState();
-    return `question: ${idx + 1}/7; keys_collected: ${keys}`;
+    const { nodeIndex, keys } = useForestStore.getState();
+    return `question: ${nodeIndex + 1}/7; keys_collected: ${keys}`;
   });
 
   useConversationClientTool("celebrateWin", () => {
@@ -35,9 +38,6 @@ export default function ForestAgentBridge() {
     return "celebrated";
   });
 
-  // After walk finishes (walking → answering), send next question text to
-  // agent so it speaks it aloud. Client already shows the question on screen;
-  // agent is just TTS here — same pattern as maze AgentBridge.
   useEffect(() => {
     const wasWalking = prevStatus.current === "walking";
     prevStatus.current = status;

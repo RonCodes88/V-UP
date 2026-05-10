@@ -11,6 +11,7 @@ export default function ForestGame() {
   const setError = useForestStore((s) => s.setError);
   const setStatus = useForestStore((s) => s.setStatus);
   const setAgentMessage = useForestStore((s) => s.setAgentMessage);
+  const onUserSpoke = useForestStore((s) => s.onUserSpoke);
 
   return (
     <ConversationProvider
@@ -27,7 +28,9 @@ export default function ForestGame() {
         if (reason !== "user") setStatus("idle");
       }}
       onMessage={({ message, source }) => {
-        if (source !== "user") {
+        if (source === "user") {
+          onUserSpoke();
+        } else {
           setAgentMessage(message);
         }
       }}

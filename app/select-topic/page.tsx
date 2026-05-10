@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { usePreloadBuddyModels } from "@/app/components/hub/usePreloadBuddyModels";
 import { useHubStore, type Topic } from "@/app/lib/hubStore";
 
 type TopicCard = {
@@ -57,6 +58,7 @@ const TOPICS: TopicCard[] = [
 
 export default function SelectTopicPage() {
   const router = useRouter();
+  usePreloadBuddyModels();
   const setSelectedTopic = useHubStore((s) => s.setSelectedTopic);
 
   const pick = (t: Topic) => {

@@ -1,16 +1,11 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import CharacterPreview from "@/app/components/hub/CharacterPreview";
 import { CHARACTER_LIST, type CharacterSlug } from "@/app/lib/characters";
 import { TOPIC_TO_ROUTE, useHubStore, type Topic } from "@/app/lib/hubStore";
-
-const CharacterPreview = dynamic(
-  () => import("@/app/components/hub/CharacterPreview"),
-  { ssr: false },
-);
 
 const TOPIC_LABEL: Record<Topic, string> = {
   science: "science",

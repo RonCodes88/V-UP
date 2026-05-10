@@ -1,10 +1,10 @@
 "use client";
 
-import { Html, useGLTF } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
-import { useForestStore, type ForestBubbleVariant } from "@/app/lib/forestStore";
+import { useForestStore } from "@/app/lib/forestStore";
 import { useHubStore } from "@/app/lib/hubStore";
 import { CHARACTERS, type CharacterSlug } from "@/app/lib/characters";
 import CatModel from "@/app/components/shared/CatModel";
@@ -16,32 +16,6 @@ function easeInOut(t: number) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 }
 
-const VARIANT_STYLES: Record<ForestBubbleVariant, { bg: string; ring: string; emoji: string }> = {
-  intro:   { bg: "bg-white",       ring: "ring-emerald-200", emoji: "👋" },
-  question:{ bg: "bg-white",       ring: "ring-green-200",   emoji: "🤔" },
-  correct: { bg: "bg-emerald-50",  ring: "ring-emerald-300", emoji: "✨" },
-  wrong:   { bg: "bg-amber-50",    ring: "ring-amber-300",   emoji: "💛" },
-  victory: { bg: "bg-yellow-50",   ring: "ring-yellow-300",  emoji: "🏆" },
-};
-
-function SpeechBubble({ text, variant, bubbleKey }: { text: string; variant: ForestBubbleVariant; bubbleKey: number }) {
-  const style = VARIANT_STYLES[variant];
-  const truncated = text.length > 120 ? `${text.slice(0, 118).trim()}…` : text;
-  return (
-    <div
-      key={bubbleKey}
-      className="bear-bubble-pop pointer-events-none select-none"
-      style={{ width: 260, transformOrigin: "50% 100%" }}
-    >
-      <div className={`relative rounded-2xl px-3 py-2 text-center text-[13px] font-semibold leading-snug text-slate-800 shadow-2xl ring-2 ${style.bg} ${style.ring}`}>
-        <span className="mr-1">{style.emoji}</span>
-        {truncated}
-        <div className={`absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 ${style.bg}`} />
-      </div>
-    </div>
-  );
-}
-
 export default function ForestCharacter() {
   const slug = useHubStore((s) => s.selectedCharacter);
   const group = useRef<THREE.Group>(null!);
@@ -50,9 +24,6 @@ export default function ForestCharacter() {
   const nodeIndex = useForestStore((s) => s.nodeIndex);
   const status = useForestStore((s) => s.status);
   const finishWalk = useForestStore((s) => s.finishWalk);
-  const bubbleText = useForestStore((s) => s.lastAgentMessage);
-  const bubbleVariant = useForestStore((s) => s.bubbleVariant);
-  const bubbleKey = useForestStore((s) => s.bubbleKey);
 
   const getTargetPos = (idx: number) => {
     const [x, y, z] = NODE_POSITIONS[Math.min(idx, NODE_POSITIONS.length - 1)];
@@ -93,7 +64,6 @@ export default function ForestCharacter() {
         finishWalk();
         if (body.current) body.current.position.y = 0.55;
       }
-      // Face direction of travel
       const dir = targetPos.current.clone().sub(startPos.current);
       if (dir.lengthSq() > 0.001) {
         const angle = Math.atan2(dir.x, dir.z);
@@ -111,15 +81,6 @@ export default function ForestCharacter() {
 
   return (
     <group ref={group}>
-      <Html
-        position={[0, 2.0, 0]}
-        center
-        distanceFactor={5}
-        zIndexRange={[100, 0]}
-        wrapperClass="bear-bubble-wrap"
-      >
-        <SpeechBubble text={bubbleText} variant={bubbleVariant} bubbleKey={bubbleKey} />
-      </Html>
       <group ref={body} position={[0, 0.55, 0]}>
         <CharacterVisual slug={slug} />
       </group>

@@ -48,7 +48,7 @@ The game client controls question order. After each walk, you will receive the n
 export function buildForestFirstMessage(): string {
   const q = QUESTIONS[0];
   return (
-    `Hello! Hello! Hi there, explorer! I'm Finn, your forest guide. We're going to collect Knowledge Keys hidden along this magical path. Answer all 7 questions and the treasure chest opens! Here is your first question: ${q.question} ` +
-    `Choice A: ${q.choices.A}. Choice B: ${q.choices.B}. Choice C: ${q.choices.C}. Choice D: ${q.choices.D}. Which one is it?`
+    `Hi explorer! I'm Finn, your forest guide. Let's collect Knowledge Keys! ` +
+    `${q.question} A: ${q.choices.A}. B: ${q.choices.B}. C: ${q.choices.C}. D: ${q.choices.D}.`
   );
 }

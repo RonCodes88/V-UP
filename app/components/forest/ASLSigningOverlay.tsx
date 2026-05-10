@@ -6,17 +6,15 @@ import { useForestStore } from "@/app/lib/forestStore";
 
 export default function ASLSigningOverlay() {
   const signingMode = useForestStore((s) => s.signingMode);
-  const questionReady = useForestStore((s) => s.questionReady);
-  const awaitingMove = useForestStore((s) => s.awaitingMove);
+  const stepCredits = useForestStore((s) => s.stepCredits);
+  const nodeIndex = useForestStore((s) => s.nodeIndex);
   const conv = useConversation();
 
-  // While in signing mode: mute whenever awaiting the arrow click (agent shouldn't speak yet)
-  // unmute once the user walks (awaitingMove becomes false) so agent can ask next question
   useEffect(() => {
     if (conv.status !== "connected" || !signingMode) return;
-    conv.setMuted(awaitingMove);
+    conv.setMuted(stepCredits > 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [awaitingMove, signingMode, conv.status]);
+  }, [stepCredits, signingMode, conv.status]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -45,10 +43,9 @@ export default function ASLSigningOverlay() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signingMode]);
 
-  // Clear word buffer when a new question loads
   useEffect(() => {
-    if (questionReady) setWordBuffer("");
-  }, [questionReady]);
+    setWordBuffer("");
+  }, [nodeIndex]);
 
   // Keyboard: Space = append letter, Enter = submit word
   useEffect(() => {
@@ -60,7 +57,7 @@ export default function ASLSigningOverlay() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detectedLetter, wordBuffer, questionReady, signingMode]);
+  }, [detectedLetter, wordBuffer, signingMode]);
 
   async function startWebcam() {
     try {
