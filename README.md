@@ -1,6 +1,6 @@
-# V↑ Conversational and Gamified Learning Platform
+# V↑: Conversational-based learning games for neurodivergent kids, kids with limb differences, and Deaf ASL learners.
 
-**HackDavis 2026** | Social Good Track
+**HackDavis 2026**
 
 An accessible education platform that uses voice-driven AI conversations to teach math, reading, and ASL through immersive 3D mini-games. Built for neurodivergent kids, kids with limb differences, and Deaf ASL learners.
 
@@ -12,7 +12,7 @@ Traditional educational software relies heavily on keyboard/mouse input and text
 
 ## Our Solution
 
-V is a web-based game hub where children pick a topic, choose an animated buddy, and play through voice-first 3D games. An AI companion (powered by ElevenLabs Conversational AI) guides them through each challenge using natural speech -- asking questions, giving hints, and celebrating correct answers out loud. No typing required.
+V↑ is a web-based game hub where children pick a topic, choose an animated buddy, and play through voice-first 3D games. An AI companion (powered by ElevenLabs Conversational AI) guides them through each challenge using natural speech -- asking questions, giving hints, and celebrating correct answers out loud. No typing required.
 
 ---
 
@@ -61,7 +61,7 @@ All interaction happens through voice. The AI asks a question, the child answers
 app/
   page.tsx                  Landing page
   select-topic/             Topic picker (Math / ASL / Explore)
-  select-character/         Character picker (Bear / Fox / Robot / Cat)
+  select-character/         Character picker (Elevenlab Agents)
   play/
     boss/                   Math boss battle game
     adventure/              Reading + ASL forest adventure
@@ -119,16 +119,6 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Name | Role |
 |---|---|
-| Ronald Li ([@RonCodes88](https://github.com/RonCodes88)) | Hub UI, Maze Quest, Boss Battle, shared systems |
-| Forest ([@SkennyMon](https://github.com/SkennyMon)) | Forest Path Adventure, reading/spelling game |
-| Cindy ([@cywlol](https://github.com/cywlol)) | ASL Sign Quest, computer vision pipeline |
-
----
-
-## Built At
-
-HackDavis 2026 -- May 10-11, 2026
-
-**Track:** Social Good
-
-**Theme:** Accessible education for children with disabilities
+| Ronald Li ([@RonCodes88](https://github.com/RonCodes88)) | 
+| Kenny Nguyen ([@SkennyMon](https://github.com/SkennyMon)) |
+| Sai Wong ([@cywlol](https://github.com/cywlol)) | 
