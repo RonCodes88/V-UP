@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useConversation } from "@elevenlabs/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { FaMicrophone, FaMicrophoneSlash, FaShoePrints, FaMapMarkerAlt, FaHeadphones } from "react-icons/fa";
 import { useGameStore } from "@/app/lib/gameStore";
 import { useHubStore } from "@/app/lib/hubStore";
 import { buildFirstMessage, buildSystemPrompt, getPersona } from "@/app/lib/agentPersona";
@@ -191,22 +192,22 @@ export default function HUD() {
 
           <div className="flex items-center gap-2">
             <Tag highlight={canMove} pulse={canMove}>
-              🎟 {stepCredits} step{stepCredits === 1 ? "" : "s"}
+              <span className="inline-flex items-center gap-1.5">
+                <FaShoePrints />
+                {stepCredits} step{stepCredits === 1 ? "" : "s"}
+              </span>
             </Tag>
-            <Tag>📍 {dist} to go</Tag>
+            <Tag>
+              <span className="inline-flex items-center gap-1.5">
+                <FaMapMarkerAlt />
+                {dist} to go
+              </span>
+            </Tag>
             <Tag highlight={connected && !muted}>
-              {connected && (
-                <span
-                  className={`mr-1 inline-block h-2 w-2 rounded-full ${
-                    muted
-                      ? "bg-rose-400"
-                      : isSpeaking
-                        ? "bg-amber-400 listening-glow"
-                        : "bg-amber-300"
-                  }`}
-                />
-              )}
-              {statusLabel}
+              <span className="inline-flex items-center gap-1.5">
+                <FaHeadphones />
+                {statusLabel}
+              </span>
             </Tag>
           </div>
         </header>
@@ -226,7 +227,10 @@ export default function HUD() {
               >
                 {persona.name}
               </div>
-              <div className="mt-2 text-2xl font-semibold leading-snug text-white drop-shadow">
+              <div
+                className="mt-2 text-2xl font-semibold leading-snug text-white drop-shadow"
+                style={cinzel}
+              >
                 {lastAgentMessage}
               </div>
               {bubbleVariant === "encouragement" && (
@@ -245,7 +249,10 @@ export default function HUD() {
                     }`}
                     style={cinzel}
                   >
-                    {muted ? "🎤 Start Listening" : "🔇 Stop Listening"}
+                    <span className="inline-flex items-center gap-2">
+                      {muted ? <FaMicrophone /> : <FaMicrophoneSlash />}
+                      {muted ? "Start Listening" : "Stop Listening"}
+                    </span>
                   </button>
                 </div>
               )}
@@ -273,7 +280,7 @@ export default function HUD() {
               >
                 Science questions unlock your path
               </p>
-              <p className="mt-4 text-sm leading-relaxed text-white/70">
+              <p className="mt-4 text-sm leading-relaxed text-white/70" style={cinzel}>
                 Answer a science question → earn a step → pick an arrow to guide your buddy toward the glowing portal.
               </p>
               <button

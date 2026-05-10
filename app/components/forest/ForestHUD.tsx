@@ -3,6 +3,7 @@
 import { useConversation } from "@elevenlabs/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
 import { useForestStore } from "@/app/lib/forestStore";
 import { useHubStore } from "@/app/lib/hubStore";
 import { buildForestFirstMessage, FOREST_SYSTEM_PROMPT } from "@/app/lib/forestAgentPersona";
@@ -221,7 +222,10 @@ export default function ForestHUD() {
                     }`}
                     style={{ fontFamily: "var(--font-cinzel), serif" }}
                   >
-                    {muted ? "🎤 Start Listening" : "🔇 Stop Listening"}
+                    <span className="inline-flex items-center gap-2">
+                      {muted ? <FaMicrophone /> : <FaMicrophoneSlash />}
+                      {muted ? "Start Listening" : "Stop Listening"}
+                    </span>
                   </button>
                   <button
                     onClick={() => {

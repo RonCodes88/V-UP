@@ -286,7 +286,10 @@ export default function BossHUD() {
                 >
                   Game Master
                 </div>
-                <div className="mt-1 text-lg font-semibold leading-snug text-white">
+                <div
+                  className="mt-1 text-lg font-semibold leading-snug text-white"
+                  style={cinzel}
+                >
                   {lastAgentMessage}
                 </div>
               </div>
@@ -364,15 +367,9 @@ export default function BossHUD() {
             >
               The Infernal Titan Awaits
             </p>
-            <p className="mt-4 text-sm leading-relaxed text-white/70">
+            <p className="mt-4 text-sm leading-relaxed tracking-wide text-white/70" style={cinzel}>
               Answer math questions fast to deal damage. One wrong answer — the boss strikes back!
             </p>
-            <div
-              className="mt-4 border border-white/10 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-white/40"
-              style={cinzel}
-            >
-              Quick-fire questions — rapid answers = rapid attacks
-            </div>
             <button
               onClick={start}
               disabled={starting}
